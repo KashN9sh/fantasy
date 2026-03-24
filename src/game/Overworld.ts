@@ -1,3 +1,4 @@
+import { surfaceWorld } from "../theme/canvasPalette";
 import type { GameState } from "./types";
 import { consumePress, isDown } from "./input";
 
@@ -29,10 +30,10 @@ export const NPC_TILE = { x: 12, y: 5 };
 export const TRAINER_TILE = { x: 8, y: 8 };
 
 const COLORS: Record<number, string> = {
-  0: "#1e3a5f",
-  1: "#2d5a3d",
-  2: "#6b5344",
-  3: "#1a3320",
+  0: surfaceWorld.water,
+  1: surfaceWorld.grass,
+  2: surfaceWorld.path,
+  3: surfaceWorld.tree,
 };
 
 let moveCooldownMs = 0;
@@ -114,7 +115,7 @@ export function renderOverworld(
   }
 
   // мягкая сетка на траве для «пиксельности»
-  ctx.strokeStyle = "rgba(0,0,0,0.08)";
+  ctx.strokeStyle = surfaceWorld.gridLine;
   ctx.lineWidth = 1;
   for (let ty = 0; ty < MAP_H; ty++) {
     for (let tx = 0; tx < MAP_W; tx++) {
@@ -123,36 +124,36 @@ export function renderOverworld(
   }
 
   // NPC
-  ctx.fillStyle = "#c9a86c";
+  ctx.fillStyle = surfaceWorld.npcBody;
   ctx.fillRect(NPC_TILE.x * TILE + 4, NPC_TILE.y * TILE + 2, 8, 12);
-  ctx.fillStyle = "#4a3d2a";
+  ctx.fillStyle = surfaceWorld.npcHair;
   ctx.fillRect(NPC_TILE.x * TILE + 3, NPC_TILE.y * TILE + 2, 10, 4);
 
   // тренер (тень)
-  ctx.fillStyle = "#4a3060";
+  ctx.fillStyle = surfaceWorld.trainerBody;
   ctx.fillRect(TRAINER_TILE.x * TILE + 3, TRAINER_TILE.y * TILE + 2, 10, 12);
-  ctx.fillStyle = "#7b5a9e";
+  ctx.fillStyle = surfaceWorld.trainerAccent;
   ctx.fillRect(TRAINER_TILE.x * TILE + 5, TRAINER_TILE.y * TILE + 4, 3, 3);
   ctx.fillRect(TRAINER_TILE.x * TILE + 9, TRAINER_TILE.y * TILE + 4, 3, 3);
 
   // игрок
-  ctx.fillStyle = "#8cb4ff";
+  ctx.fillStyle = surfaceWorld.player;
   ctx.fillRect(state.playerTileX * TILE + 4, state.playerTileY * TILE + 2, 8, 12);
-  ctx.fillStyle = "#dfe8ff";
+  ctx.fillStyle = surfaceWorld.playerFace;
   ctx.fillRect(state.playerTileX * TILE + 5, state.playerTileY * TILE + 3, 6, 3);
 
   // подсказка рядом с NPC
   if (state.mode === "explore" && adjacentToNpc(state.playerTileX, state.playerTileY)) {
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillStyle = surfaceWorld.hintBg;
     ctx.fillRect(4, MAP_H * TILE - 18, MAP_W * TILE - 8, 14);
-    ctx.fillStyle = "#e8e0d5";
+    ctx.fillStyle = surfaceWorld.hintText;
     ctx.font = "10px monospace";
     ctx.textAlign = "left";
     ctx.fillText("E / Пробел — поговорить", 8, MAP_H * TILE - 7);
   } else if (state.mode === "explore" && adjacentToTrainer(state.playerTileX, state.playerTileY)) {
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillStyle = surfaceWorld.hintBg;
     ctx.fillRect(4, MAP_H * TILE - 18, MAP_W * TILE - 8, 14);
-    ctx.fillStyle = "#e8e0d5";
+    ctx.fillStyle = surfaceWorld.hintText;
     ctx.font = "10px monospace";
     ctx.textAlign = "left";
     ctx.fillText("E / Пробел — карточный бой", 8, MAP_H * TILE - 7);

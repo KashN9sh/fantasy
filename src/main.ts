@@ -1,7 +1,8 @@
 import "./style.css";
 import type { BattleState } from "./combat/types";
+import { syncThemeFromGameMode } from "./theme/syncGameTheme";
 import { getHermitDialog } from "./data/story";
-import { createInitialState, type GameState } from "./game/types";
+import { createInitialState, type GameMode, type GameState } from "./game/types";
 import { initInput } from "./game/input";
 import {
   renderOverworld,
@@ -102,10 +103,16 @@ function updateExploreInteractions() {
 }
 
 let last = performance.now();
+let prevGameMode: GameMode | null = null;
 
 function frame(now: number) {
   const dt = Math.min(50, now - last);
   last = now;
+
+  if (state.mode !== prevGameMode) {
+    syncThemeFromGameMode(state.mode);
+    prevGameMode = state.mode;
+  }
 
   if (state.mode === "explore") {
     updateOverworld(state, dt);
@@ -116,4 +123,6 @@ function frame(now: number) {
   requestAnimationFrame(frame);
 }
 
+syncThemeFromGameMode(state.mode);
+prevGameMode = state.mode;
 requestAnimationFrame(frame);
