@@ -1,4 +1,4 @@
-export type GameMode = "explore" | "dialog" | "card" | "end";
+export type GameMode = "explore" | "dialog" | "card" | "battle" | "end";
 
 export interface DialogLine {
   speaker: string;

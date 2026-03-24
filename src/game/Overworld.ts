@@ -25,6 +25,8 @@ const TILES: number[] = [
 ];
 
 export const NPC_TILE = { x: 12, y: 5 };
+/** Тренировочная тень — карточный бой */
+export const TRAINER_TILE = { x: 8, y: 8 };
 
 const COLORS: Record<number, string> = {
   0: "#1e3a5f",
@@ -44,6 +46,7 @@ function isBlocked(tx: number, ty: number): boolean {
   const t = tileAt(tx, ty);
   if (t === 0 || t === 3) return true;
   if (tx === NPC_TILE.x && ty === NPC_TILE.y) return true;
+  if (tx === TRAINER_TILE.x && ty === TRAINER_TILE.y) return true;
   return false;
 }
 
@@ -55,6 +58,17 @@ function adjacentToNpc(px: number, py: number): boolean {
 
 export function tryStartHermitDialog(state: GameState): boolean {
   if (!adjacentToNpc(state.playerTileX, state.playerTileY)) return false;
+  return consumePress("KeyE") || consumePress("Space");
+}
+
+function adjacentToTrainer(px: number, py: number): boolean {
+  const dx = Math.abs(px - TRAINER_TILE.x);
+  const dy = Math.abs(py - TRAINER_TILE.y);
+  return dx + dy === 1;
+}
+
+export function tryStartTrainerBattle(state: GameState): boolean {
+  if (!adjacentToTrainer(state.playerTileX, state.playerTileY)) return false;
   return consumePress("KeyE") || consumePress("Space");
 }
 
@@ -114,6 +128,13 @@ export function renderOverworld(
   ctx.fillStyle = "#4a3d2a";
   ctx.fillRect(NPC_TILE.x * TILE + 3, NPC_TILE.y * TILE + 2, 10, 4);
 
+  // тренер (тень)
+  ctx.fillStyle = "#4a3060";
+  ctx.fillRect(TRAINER_TILE.x * TILE + 3, TRAINER_TILE.y * TILE + 2, 10, 12);
+  ctx.fillStyle = "#7b5a9e";
+  ctx.fillRect(TRAINER_TILE.x * TILE + 5, TRAINER_TILE.y * TILE + 4, 3, 3);
+  ctx.fillRect(TRAINER_TILE.x * TILE + 9, TRAINER_TILE.y * TILE + 4, 3, 3);
+
   // игрок
   ctx.fillStyle = "#8cb4ff";
   ctx.fillRect(state.playerTileX * TILE + 4, state.playerTileY * TILE + 2, 8, 12);
@@ -128,5 +149,12 @@ export function renderOverworld(
     ctx.font = "10px monospace";
     ctx.textAlign = "left";
     ctx.fillText("E / Пробел — поговорить", 8, MAP_H * TILE - 7);
+  } else if (state.mode === "explore" && adjacentToTrainer(state.playerTileX, state.playerTileY)) {
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(4, MAP_H * TILE - 18, MAP_W * TILE - 8, 14);
+    ctx.fillStyle = "#e8e0d5";
+    ctx.font = "10px monospace";
+    ctx.textAlign = "left";
+    ctx.fillText("E / Пробел — карточный бой", 8, MAP_H * TILE - 7);
   }
 }

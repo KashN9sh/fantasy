@@ -1,10 +1,17 @@
 import "./style.css";
+import type { BattleState } from "./combat/types";
+import { getHermitDialog } from "./data/story";
 import { createInitialState, type GameState } from "./game/types";
 import { initInput } from "./game/input";
-import { renderOverworld, tryStartHermitDialog, updateOverworld } from "./game/Overworld";
-import { createDialogController } from "./ui/Dialog";
+import {
+  renderOverworld,
+  tryStartHermitDialog,
+  tryStartTrainerBattle,
+  updateOverworld,
+} from "./game/Overworld";
+import { createBattleUI } from "./ui/BattleUI";
 import { createCardSceneController } from "./ui/CardScene";
-import { getHermitDialog } from "./data/story";
+import { createDialogController } from "./ui/Dialog";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#world");
 const uiRoot = document.querySelector<HTMLElement>("#ui-root");
@@ -21,8 +28,20 @@ const worldCtx = ctx;
 initInput();
 
 const state: GameState = createInitialState();
+let combatState: BattleState | null = null;
+
 const dialog = createDialogController(rootEl);
 const cards = createCardSceneController(rootEl);
+const battleUI = createBattleUI(rootEl, {
+  getBattle: () => combatState,
+  setBattle: (b) => {
+    combatState = b;
+  },
+  onClose: () => {
+    state.mode = "explore";
+    combatState = null;
+  },
+});
 
 function showEndScreen() {
   const wrap = document.createElement("div");
@@ -71,6 +90,12 @@ function openHermitDialog() {
 }
 
 function updateExploreInteractions() {
+  if (state.mode !== "explore") return;
+  if (tryStartTrainerBattle(state)) {
+    state.mode = "battle";
+    battleUI.mount();
+    return;
+  }
   if (tryStartHermitDialog(state)) {
     openHermitDialog();
   }
