@@ -2,7 +2,7 @@
 
 Единый мастер-документ: от входа в игру до титров — **сцены, выборы, триггеры врагов, развязки NPC, финал**. Детальная постановка **части 9 (Корень)** и реплики здесь; структура фаз и принципы — [FINALE.md](./FINALE.md).
 
-**Связанные документы:** [CONCEPT.md](./CONCEPT.md) · [PATHS.md](./PATHS.md) · [COLOR_SYSTEM.md](./COLOR_SYSTEM.md) · [NPCS.md](./NPCS.md) · [ENEMY_BATTLES.md](./ENEMY_BATTLES.md) · [FINALE.md](./FINALE.md) · [ITEMS_AND_ENEMIES.md](./ITEMS_AND_ENEMIES.md)
+**Связанные документы:** [CONCEPT.md](./CONCEPT.md) · [PATHS.md](./PATHS.md) · [COLOR_SYSTEM.md](./COLOR_SYSTEM.md) · [NPCS.md](./NPCS.md) · [ENCOUNTER_SYSTEM.md](./ENCOUNTER_SYSTEM.md) (когда начинается бой, без врагов на карте) · [ENEMY_BATTLES.md](./ENEMY_BATTLES.md) · [FINALE.md](./FINALE.md) · [ITEMS_AND_ENEMIES.md](./ITEMS_AND_ENEMIES.md)
 
 Реплики **героя** в реализации — нейтральные ([CONCEPT.md](./CONCEPT.md)). Имена предметов — как в [ITEMS_AND_ENEMIES.md](./ITEMS_AND_ENEMIES.md).
 
