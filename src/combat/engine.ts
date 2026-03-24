@@ -1,5 +1,6 @@
 import { BASE_DECK_IDS, getBattleCardDef } from "./battleCardDefs";
 import { bumpPityAfterDraw, pickWeightedDrawIndex } from "./deckSampling";
+import type { BattleEndSummary } from "../game/types";
 import type {
   BattleCardDef,
   BattleSamplingContext,
@@ -220,6 +221,7 @@ const ENEMY_PRESETS: Record<string, { name: string; hp: number; intentDamage: nu
   insomnia: { name: "Бессонница", hp: 38, intentDamage: 0 },
   expectation_judgment: { name: "Ожидание «а что подумают»", hp: 60, intentDamage: 7 },
   root_of_anxiety: { name: "Корень тревоги", hp: 72, intentDamage: 9 },
+  coalition_anxiety: { name: "Коалиция голосов", hp: 52, intentDamage: 5 },
 };
 
 /** Мгновенная победа картой по id ([`ENEMY_BATTLES.md`](../../docs/ENEMY_BATTLES.md)) */
@@ -238,6 +240,87 @@ export interface CreateBattleOptions {
   deckIds?: string[];
   /** Взвешенный добор по [`DECK_PROBABILITIES.md`](../../docs/DECK_PROBABILITIES.md) */
   samplingContext?: BattleSamplingContext | null;
+  /** Второй враг как enemy-миньон (ENCOUNTER_SYSTEM) */
+  allyEnemyId?: string;
+  /** Множитель ОЗ и намерения главного героя (реванш) */
+  enemyPowerScale?: number;
+  /** §3.6: усилить союзного миньона после «понимания» */
+  buffAllyMinion?: boolean;
+}
+
+function trackCardPlayMeta(state: BattleState, def: BattleCardDef): void {
+  state.cardsPlayedTotal++;
+  const cat = def.deckCategory ?? "base";
+  if (cat === "absorption") {
+    state.absorptionPlayStreak++;
+    state.acceptancePlayStreak = 0;
+  } else if (cat === "acceptance") {
+    state.acceptancePlayStreak++;
+    state.absorptionPlayStreak = 0;
+  } else {
+    state.absorptionPlayStreak = 0;
+    state.acceptancePlayStreak = 0;
+  }
+  if (state.absorptionPlayStreak >= 3) state.metaPostAbsorption3 = true;
+  if (state.acceptancePlayStreak >= 3) state.metaPostAcceptance3 = true;
+}
+
+function pushEchoMinion(state: BattleState, allyId: string, buff: boolean): void {
+  const p = ENEMY_PRESETS[allyId] ?? ENEMY_PRESETS.voice_must;
+  let atk = 4;
+  let hp = Math.max(14, Math.floor(p.hp * 0.38));
+  if (buff) {
+    atk += 2;
+    hp += 10;
+  }
+  const m: MinionInstance = {
+    uid: uid("eminion"),
+    defId: "echo",
+    name: `${p.name} (эхо)`,
+    atk,
+    hp,
+    maxHp: hp,
+    canAttack: true,
+    taunt: false,
+    poison: 0,
+  };
+  state.enemyMinions.push(m);
+  log(state, `Рядом — эхо: ${m.name} (${atk}/${hp}).`);
+}
+
+export function summarizeBattleEnd(state: BattleState): BattleEndSummary {
+  const eid = state.battleEnemyId;
+  const meta = {
+    hadAnyCardPlayed: state.cardsPlayedTotal > 0,
+    postAbsorption3: state.metaPostAbsorption3,
+    postAcceptance3: state.metaPostAcceptance3,
+    postDiscard3: state.metaPostDiscard3,
+  };
+  if (state.phase === "won") {
+    return {
+      endKind: "won",
+      integrationWin: state.enemy.hp > 0,
+      enemyId: eid,
+      ...meta,
+    };
+  }
+  if (state.phase === "lost") {
+    return {
+      endKind: "lost",
+      integrationWin: false,
+      enemyId: eid,
+      hadAnyCardPlayed: meta.hadAnyCardPlayed,
+      postAbsorption3: false,
+      postAcceptance3: false,
+      postDiscard3: false,
+    };
+  }
+  return {
+    endKind: "abandoned",
+    integrationWin: false,
+    enemyId: eid,
+    ...meta,
+  };
 }
 
 export function createBattle(opts: CreateBattleOptions = {}): BattleState {
@@ -283,7 +366,29 @@ export function createBattle(opts: CreateBattleOptions = {}): BattleState {
     discardPile: [],
     log: [],
     samplingContext: opts.samplingContext ?? null,
+    cardsPlayedTotal: 0,
+    absorptionPlayStreak: 0,
+    acceptancePlayStreak: 0,
+    turnsNoCardEnd: 0,
+    metaPostAbsorption3: false,
+    metaPostAcceptance3: false,
+    metaPostDiscard3: false,
   };
+
+  const scale = opts.enemyPowerScale ?? 1;
+  if (scale > 1) {
+    state.enemy.maxHp = Math.floor(state.enemy.maxHp * scale);
+    state.enemy.hp = state.enemy.maxHp;
+    state.enemy.intentDamage = Math.floor(state.enemy.intentDamage * scale);
+    log(state, `Враг возвращается сильнее (×${scale}).`);
+  }
+
+  if (enemyId === "coalition_anxiety") {
+    pushEchoMinion(state, "voice_must", false);
+  }
+  if (opts.allyEnemyId) {
+    pushEchoMinion(state, opts.allyEnemyId, opts.buffAllyMinion ?? false);
+  }
 
   if (enemyId === "voice_must") {
     state.player.maxEnergy = 2;
@@ -333,6 +438,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
 
   state.player.energy -= def.cost;
   state.cardsPlayedThisTurn++;
+  trackCardPlayMeta(state, def);
 
   if (
     def.instantWinIfEnemyId?.length &&
@@ -437,6 +543,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
     if (!ok) {
       state.player.energy += def.cost;
       state.cardsPlayedThisTurn--;
+      state.cardsPlayedTotal = Math.max(0, state.cardsPlayedTotal - 1);
       return "Поле заполнено.";
     }
     discardFromHand(state, handIndex);
@@ -547,6 +654,8 @@ function enemyTurn(state: BattleState) {
     state.enemy.intentDamage = 5 + Math.floor(Math.random() * 4);
   } else if (id === "expectation_judgment") {
     state.enemy.intentDamage = 6 + Math.floor(Math.random() * 5);
+  } else if (id === "coalition_anxiety") {
+    state.enemy.intentDamage = 5 + Math.floor(Math.random() * 5);
   } else {
     state.enemy.intentDamage = 6 + Math.floor(Math.random() * 5);
   }
@@ -636,6 +745,16 @@ export function endPlayerTurn(state: BattleState): string | null {
     }
     checkBattleEnd(state);
     if (state.phase !== "player") return null;
+  }
+
+  const bid = state.battleEnemyId;
+  if (bid !== "hum_unnamed" && bid !== "insomnia") {
+    if (state.cardsPlayedThisTurn === 0) {
+      state.turnsNoCardEnd++;
+      if (state.turnsNoCardEnd >= 3) state.metaPostDiscard3 = true;
+    } else {
+      state.turnsNoCardEnd = 0;
+    }
   }
 
   state.phase = "enemy";

@@ -1,7 +1,7 @@
 # Система нападения врагов «Тихая тропа»
 
 > **Связь с боем:** как устроен сам бой — [COMBAT_SYSTEM.md](./COMBAT_SYSTEM.md). Механики миньонов в бою — [ENEMY_BATTLES.md](./ENEMY_BATTLES.md). Триггеры по сценарию локаций — [SCENARIO.md](./SCENARIO.md).  
-> **Состояние кода:** в прототипе часть боёв всё ещё запускается с **тайла встречи** на зоне (`overworldMaps.battle`). **Целевая модель** — только осмысленные триггеры из этого документа, без вражеских спрайтов на оверворлде.
+> **Состояние кода:** единый слой в [`src/game/encounters.ts`](../src/game/encounters.ts) + [`src/game/types.ts`](../src/game/types.ts) (`EncounterRuntime`, `BattleEndSummary`, `PendingEncounter`), тексты в [`src/data/encounterWarnings.ts`](../src/data/encounterWarnings.ts), хуки в [`src/main.ts`](../src/main.ts), движок боя: [`src/combat/engine.ts`](../src/combat/engine.ts) (`summarizeBattleEnd`, союзные миньоны, `coalition_anxiety`, масштаб реванша). **Пауза** между зонами: завершение NPC-диалога, привал, простой в explore ≥ 13 с. **Колода (I):** просмотр ≥20 с → Сравнение. **Привал** на [`last_camp`](../src/game/overworldMaps.ts) (клетка restSpot). Спрайта врага на оверворлде нет.
 
 ---
 
@@ -186,4 +186,4 @@
 
 ---
 
-*При реализации в коде завести единый слой «оценка триггеров → очередь боя → предупреждение → BattleUI», чтобы не дублировать логику с [SCENARIO.md](./SCENARIO.md).*
+*Реализовано: `tickExploreEncounterIdle` → `evaluateExploreEncounters` / `encounterOnZoneEntered` → `runEncounterPrelude` → диалог → `BattleUI`; после боя `summarizeBattleEnd` + `applyBattleEndToEncounters`. Сюжетные ветки остаются в [SCENARIO.md](./SCENARIO.md).*

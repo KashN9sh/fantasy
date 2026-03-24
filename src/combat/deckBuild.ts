@@ -1,6 +1,7 @@
-import type { GameState } from "../game/types";
+import { LINES_THREE_SAME_TYPE } from "../data/encounterWarnings";
+import type { GameState, PendingEncounter } from "../game/types";
 import type { BattleSamplingContext } from "./types";
-import { BASE_DECK_IDS } from "./battleCardDefs";
+import { BASE_DECK_IDS, getBattleCardDef } from "./battleCardDefs";
 
 /** Карта интеграции по id врага ([`DECK.md`](../../docs/DECK.md)) */
 export const INTEGRATION_CARD_BY_ENEMY: Record<string, string> = {
@@ -70,6 +71,23 @@ export function buildBattleDeckIds(state: GameState): string[] {
   }
 
   return out;
+}
+
+/** §3.3: три карты одной категории (не base) в колоде боя */
+export function tryEncounterThreeSameDeckCategory(state: GameState): PendingEncounter | null {
+  if (state.encounter.threeSameCategoryDone) return null;
+  const ids = buildBattleDeckIds(state);
+  const counts = new Map<string, number>();
+  for (const id of ids) {
+    const cat = getBattleCardDef(id)?.deckCategory;
+    if (!cat || cat === "base") continue;
+    counts.set(cat, (counts.get(cat) ?? 0) + 1);
+    if ((counts.get(cat) ?? 0) >= 3) {
+      state.encounter.threeSameCategoryDone = true;
+      return { enemyId: "compare_others", lines: LINES_THREE_SAME_TYPE };
+    }
+  }
+  return null;
 }
 
 export function buildBattleSamplingContext(state: GameState): BattleSamplingContext {

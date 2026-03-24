@@ -2,6 +2,7 @@ import { surfaceWorld } from "../theme/canvasPalette";
 import { isStoryNpcVisible, type StoryNpcKind } from "../data/scenarioParts5to8";
 import type { GameState } from "./types";
 import { consumePress, isDown } from "./input";
+import { encounterRecordMove } from "./encounters";
 import {
   MAP_H,
   MAP_W,
@@ -46,10 +47,6 @@ function isBlocked(state: GameState, tx: number, ty: number): boolean {
     if (!isStoryNpcVisible(state, sn.kind)) continue;
     if (tx === sn.x && ty === sn.y) return true;
   }
-  const b = lay.battle;
-  if (b && tx === b.x && ty === b.y && !state.defeatedEnemyIds.includes(b.enemyId)) {
-    return true;
-  }
   return false;
 }
 
@@ -61,12 +58,11 @@ function adjacentToHermit(state: GameState): boolean {
   return dx + dy === 1;
 }
 
-function adjacentToBattle(state: GameState): boolean {
-  const b = ZONE_LAYOUT[state.currentZoneId].battle;
-  if (!b || state.defeatedEnemyIds.includes(b.enemyId)) return false;
-  const dx = Math.abs(state.playerTileX - b.x);
-  const dy = Math.abs(state.playerTileY - b.y);
-  return dx + dy === 1;
+/** Игрок стоит на невидимой точке встречи ([ENCOUNTER_SYSTEM.md](../../docs/ENCOUNTER_SYSTEM.md)) */
+export function playerOnEncounterTrigger(state: GameState): boolean {
+  const enc = ZONE_LAYOUT[state.currentZoneId].encounter;
+  if (!enc || state.defeatedEnemyIds.includes(enc.enemyId)) return false;
+  return state.playerTileX === enc.tileX && state.playerTileY === enc.tileY;
 }
 
 function adjacentToVera(state: GameState): boolean {
@@ -89,11 +85,6 @@ function adjacentToIra(state: GameState): boolean {
 
 export function tryStartHermitDialog(state: GameState): boolean {
   if (!adjacentToHermit(state)) return false;
-  return consumePress("KeyE") || consumePress("Space");
-}
-
-export function tryStartTrainerBattle(state: GameState): boolean {
-  if (!adjacentToBattle(state)) return false;
   return consumePress("KeyE") || consumePress("Space");
 }
 
@@ -136,6 +127,18 @@ export function tryConsumeStoryNpcInteraction(state: GameState): StoryNpcKind | 
   return kind;
 }
 
+export function playerOnRestSpot(state: GameState): boolean {
+  const r = ZONE_LAYOUT[state.currentZoneId].restSpot;
+  if (!r) return false;
+  return state.playerTileX === r.x && state.playerTileY === r.y;
+}
+
+export function tryStartRest(state: GameState): boolean {
+  if (state.mode !== "explore") return false;
+  if (!playerOnRestSpot(state)) return false;
+  return consumePress("KeyE") || consumePress("Space");
+}
+
 /** Игрок на клетке перехода в следующую зону */
 export function onZoneExitTile(state: GameState): boolean {
   const tr = ZONE_TRANSITION[state.currentZoneId];
@@ -175,6 +178,7 @@ export function updateOverworld(state: GameState, dtMs: number): void {
       const nx = state.playerTileX + dx;
       const ny = state.playerTileY + dy;
       if (!isBlocked(state, nx, ny)) {
+        encounterRecordMove(state, dx, dy);
         state.playerTileX = nx;
         state.playerTileY = ny;
         moveCooldownMs = 140;
@@ -215,16 +219,6 @@ export function renderOverworld(
     ctx.fillRect(hx * TILE + 4, hy * TILE + 2, 8, 12);
     ctx.fillStyle = surfaceWorld.npcHair;
     ctx.fillRect(hx * TILE + 3, hy * TILE + 2, 10, 4);
-  }
-
-  if (lay.battle && !state.defeatedEnemyIds.includes(lay.battle.enemyId)) {
-    const tx = lay.battle.x;
-    const ty = lay.battle.y;
-    ctx.fillStyle = surfaceWorld.trainerBody;
-    ctx.fillRect(tx * TILE + 3, ty * TILE + 2, 10, 12);
-    ctx.fillStyle = surfaceWorld.trainerAccent;
-    ctx.fillRect(tx * TILE + 5, ty * TILE + 4, 3, 3);
-    ctx.fillRect(tx * TILE + 9, ty * TILE + 4, 3, 3);
   }
 
   if (lay.vera) {
@@ -324,18 +318,20 @@ export function renderOverworld(
     ctx.font = "10px monospace";
     ctx.textAlign = "left";
     ctx.fillText("E / Пробел — Ира", 8, hintY);
-  } else if (adjacentToBattle(state)) {
-    const id = lay.battle?.enemyId ?? "";
-    const label =
-      id === "hum_unnamed"
-        ? "E / Пробел — бой с гулом"
-        : "E / Пробел — бой";
+  } else if (playerOnEncounterTrigger(state)) {
     ctx.fillStyle = surfaceWorld.hintBg;
     ctx.fillRect(4, MAP_H * TILE - 18, MAP_W * TILE - 8, 14);
     ctx.fillStyle = surfaceWorld.hintText;
     ctx.font = "10px monospace";
     ctx.textAlign = "left";
-    ctx.fillText(label, 8, hintY);
+    ctx.fillText("Здесь сгущается тишина — начнётся встреча", 8, hintY);
+  } else if (playerOnRestSpot(state)) {
+    ctx.fillStyle = surfaceWorld.hintBg;
+    ctx.fillRect(4, MAP_H * TILE - 18, MAP_W * TILE - 8, 14);
+    ctx.fillStyle = surfaceWorld.hintText;
+    ctx.font = "10px monospace";
+    ctx.textAlign = "left";
+    ctx.fillText("E / Пробел — привал (отдых)", 8, hintY);
   } else if (onZoneExitTile(state) && ZONE_TRANSITION[state.currentZoneId]) {
     const forkHint =
       state.currentZoneId === "last_camp" && !state.flags.lastCampForkDone

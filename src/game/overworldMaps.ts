@@ -114,8 +114,13 @@ export interface ZoneNpcLayout {
   ira: { x: number; y: number } | null;
   /** Сюжетные NPC ч.5–8 ([`scenarioParts5to8`](../data/scenarioParts5to8.ts)) */
   storyNpcs: StoryNpcSpawn[];
-  /** Бой с миньоном: позиция и id врага */
-  battle: { x: number; y: number; enemyId: string } | null;
+  /**
+   * Точка напряжения: вошёл на клетку → предупреждение → бой ([ENCOUNTER_SYSTEM.md](../../docs/ENCOUNTER_SYSTEM.md)).
+   * Не блокирует ход, без спрайта врага.
+   */
+  encounter: { tileX: number; tileY: number; enemyId: string } | null;
+  /** Клетка «привал» — отдых (ENCOUNTER_SYSTEM §3.2) */
+  restSpot: { x: number; y: number } | null;
   /** Стартовая позиция при входе из предыдущей зоны */
   spawnIn: { x: number; y: number };
 }
@@ -127,7 +132,8 @@ export const ZONE_LAYOUT: Record<WorldZoneId, ZoneNpcLayout> = {
     lin: null,
     ira: null,
     storyNpcs: [],
-    battle: { x: 8, y: 8, enemyId: "hum_unnamed" },
+    encounter: { tileX: 8, tileY: 8, enemyId: "hum_unnamed" },
+    restSpot: null,
     spawnIn: { x: 10, y: 11 },
   },
   bridge: {
@@ -136,7 +142,8 @@ export const ZONE_LAYOUT: Record<WorldZoneId, ZoneNpcLayout> = {
     lin: null,
     ira: null,
     storyNpcs: [],
-    battle: { x: 10, y: 8, enemyId: "voice_must" },
+    encounter: { tileX: 10, tileY: 8, enemyId: "voice_must" },
+    restSpot: null,
     spawnIn: { x: 10, y: 13 },
   },
   three_pines: {
@@ -145,7 +152,8 @@ export const ZONE_LAYOUT: Record<WorldZoneId, ZoneNpcLayout> = {
     lin: { x: 12, y: 5 },
     ira: null,
     storyNpcs: [],
-    battle: { x: 5, y: 7, enemyId: "compare_others" },
+    encounter: { tileX: 5, tileY: 7, enemyId: "compare_others" },
+    restSpot: null,
     spawnIn: { x: 10, y: 12 },
   },
   grove: {
@@ -154,7 +162,8 @@ export const ZONE_LAYOUT: Record<WorldZoneId, ZoneNpcLayout> = {
     lin: null,
     ira: { x: 6, y: 10 },
     storyNpcs: [],
-    battle: { x: 14, y: 7, enemyId: "shadow_past_decision" },
+    encounter: { tileX: 14, tileY: 7, enemyId: "shadow_past_decision" },
+    restSpot: null,
     spawnIn: { x: 10, y: 12 },
   },
   ravine: {
@@ -163,7 +172,8 @@ export const ZONE_LAYOUT: Record<WorldZoneId, ZoneNpcLayout> = {
     lin: null,
     ira: null,
     storyNpcs: [{ kind: "hermit_ravine", x: 8, y: 6 }],
-    battle: { x: 10, y: 7, enemyId: "insomnia" },
+    encounter: { tileX: 10, tileY: 7, enemyId: "insomnia" },
+    restSpot: null,
     spawnIn: { x: 10, y: 12 },
   },
   dusk: {
@@ -172,7 +182,8 @@ export const ZONE_LAYOUT: Record<WorldZoneId, ZoneNpcLayout> = {
     lin: null,
     ira: null,
     storyNpcs: [{ kind: "lin_dusk_second", x: 14, y: 7 }],
-    battle: { x: 10, y: 7, enemyId: "expectation_judgment" },
+    encounter: { tileX: 10, tileY: 7, enemyId: "expectation_judgment" },
+    restSpot: null,
     spawnIn: { x: 10, y: 12 },
   },
   crossroads: {
@@ -184,7 +195,8 @@ export const ZONE_LAYOUT: Record<WorldZoneId, ZoneNpcLayout> = {
       { kind: "vera_cross_second", x: 7, y: 7 },
       { kind: "ira_cross_second", x: 14, y: 7 },
     ],
-    battle: null,
+    encounter: null,
+    restSpot: null,
     spawnIn: { x: 10, y: 12 },
   },
   last_camp: {
@@ -199,7 +211,8 @@ export const ZONE_LAYOUT: Record<WorldZoneId, ZoneNpcLayout> = {
       { kind: "hermit_camp_third", x: 10, y: 5 },
       { kind: "figure_camp", x: 16, y: 8 },
     ],
-    battle: null,
+    encounter: null,
+    restSpot: { x: 10, y: 10 },
     spawnIn: { x: 10, y: 12 },
   },
   root: {
@@ -208,7 +221,8 @@ export const ZONE_LAYOUT: Record<WorldZoneId, ZoneNpcLayout> = {
     lin: null,
     ira: null,
     storyNpcs: [],
-    battle: null,
+    encounter: null,
+    restSpot: null,
     spawnIn: { x: 10, y: 12 },
   },
 };

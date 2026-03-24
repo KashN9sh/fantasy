@@ -1,6 +1,12 @@
 import "./style.css";
+import { summarizeBattleEnd } from "./combat/engine";
 import type { BattleState } from "./combat/types";
-import { buildBattleDeckIds, buildBattleSamplingContext } from "./combat/deckBuild";
+import {
+  buildBattleDeckIds,
+  buildBattleSamplingContext,
+  tryEncounterThreeSameDeckCategory,
+} from "./combat/deckBuild";
+import { getBattleCardDef } from "./combat/battleCardDefs";
 import { syncThemeFromGameMode } from "./theme/syncGameTheme";
 import { getHermitDialog } from "./data/story";
 import { CHOICE_FORK_CLEARING, AFTER_FORK_LINES, INTRO_SCREENS } from "./data/storyScenes";
@@ -131,7 +137,27 @@ import {
   type FinaleTrack,
 } from "./game/finaleTrack";
 import {
+  LINES_HURTFUL_TRUTH,
+  LINES_INVENTORY_COMPARE,
+  LINES_INTERRUPT_VOICE,
+  LINES_REFUSE_HELP_VOICE,
+  LINES_REST_VOICE,
+  LINES_SILENCE_GUL,
+} from "./data/encounterWarnings";
+import {
+  applyBattleEndToEncounters,
+  encounterOnZoneEntered,
+  evaluateExploreEncounters,
+  signalEncounterDialogPause,
+  signalEncounterRestPause,
+  tickExploreEncounterIdle,
+  tryConsumeShadowLieEncounter,
+  tryConsumeShiftEncounter,
+  type PendingEncounter,
+} from "./game/encounters";
+import {
   createInitialState,
+  type BattleEndSummary,
   type DialogLine,
   type GameMode,
   type GameState,
@@ -148,14 +174,16 @@ import {
   tryStartHermitDialog,
   tryStartIraDialog,
   tryStartLinDialog,
-  tryStartTrainerBattle,
+  tryStartRest,
   tryStartVeraDialog,
   updateOverworld,
 } from "./game/Overworld";
+import { resetEncounterStandTile } from "./game/encounters";
 import { ZONE_LAYOUT } from "./game/overworldMaps";
 import { createBattleUI } from "./ui/BattleUI";
 import { createCardSceneController } from "./ui/CardScene";
 import { createDialogController } from "./ui/Dialog";
+import { runEncounterPrelude } from "./ui/encounterPrelude";
 import { createIntroOverlay } from "./ui/IntroOverlay";
 import { createStoryChoice } from "./ui/StoryChoice";
 
@@ -175,6 +203,74 @@ initInput();
 
 const state: GameState = createInitialState();
 let combatState: BattleState | null = null;
+let deckViewAccumMs = 0;
+let deckViewWrap: HTMLDivElement | null = null;
+
+function resumeExplore() {
+  signalEncounterDialogPause(state);
+  const m: GameMode = "explore";
+  state.mode = m;
+}
+
+const REST_CHOICE_OPTIONS: StoryChoiceOption[] = [
+  {
+    id: "rest_yes",
+    label: "Присесть",
+    acceptanceDelta: 0,
+    absorptionDelta: 0,
+    nextSceneId: "rest_yes",
+  },
+  {
+    id: "rest_no",
+    label: "Идти дальше",
+    acceptanceDelta: 0,
+    absorptionDelta: 0,
+    nextSceneId: "rest_no",
+  },
+];
+
+function closeDeckViewUi() {
+  deckViewWrap?.remove();
+  deckViewWrap = null;
+  deckViewAccumMs = 0;
+}
+
+function openDeckViewUi() {
+  if (state.mode !== "explore") return;
+  closeDeckViewUi();
+  state.mode = "deck_view";
+  deckViewAccumMs = 0;
+  const ids = buildBattleDeckIds(state);
+  deckViewWrap = document.createElement("div");
+  deckViewWrap.className = "deck-view-overlay";
+  const items = ids
+    .map((id) => {
+      const d = getBattleCardDef(id);
+      return `<li>${escapeHtmlDeck(d?.name ?? id)}</li>`;
+    })
+    .join("");
+  deckViewWrap.innerHTML = `
+    <div class="deck-view-box">
+      <h3 class="deck-view-title">Колода</h3>
+      <p class="deck-view-hint">Удерживай открытым 20 с — триггер «Сравнение». I или Esc — закрыть.</p>
+      <ul class="deck-view-list">${items}</ul>
+    </div>
+  `;
+  rootEl.appendChild(deckViewWrap);
+}
+
+function escapeHtmlDeck(s: string): string {
+  return s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function maybeShiftEncounter() {
+  const enc = tryConsumeShiftEncounter(state);
+  if (enc) startEncounterFromPending(enc);
+}
 
 const dialog = createDialogController(rootEl);
 const cards = createCardSceneController(rootEl);
@@ -192,7 +288,7 @@ function showCredits() {
   `;
   wrap.querySelector("button")?.addEventListener("click", () => {
     wrap.remove();
-    state.mode = "explore";
+    resumeExplore();
     state.flags.finaleComplete = true;
   });
   rootEl.appendChild(wrap);
@@ -344,36 +440,81 @@ const battleUI = createBattleUI(rootEl, {
     enemyId: state.pendingBattleEnemyId ?? "hum_unnamed",
     deckIds: buildBattleDeckIds(state),
     samplingContext: buildBattleSamplingContext(state),
+    allyEnemyId: state.pendingBattleAllyId ?? undefined,
+    enemyPowerScale: state.pendingBattlePowerScale > 1 ? state.pendingBattlePowerScale : undefined,
+    buffAllyMinion: state.pendingBattleBuffAlly ? true : undefined,
   }),
   onClose: (won, lastBattle) => {
     const eid = state.pendingBattleEnemyId ?? "hum_unnamed";
     const rootBoss = eid === "root_of_anxiety";
 
-    if (won) {
-      if (!state.defeatedEnemyIds.includes(eid)) {
-        state.defeatedEnemyIds.push(eid);
+    const summary: BattleEndSummary = lastBattle
+      ? summarizeBattleEnd(lastBattle)
+      : {
+          endKind: "abandoned",
+          integrationWin: false,
+          enemyId: eid,
+          hadAnyCardPlayed: false,
+          postAbsorption3: false,
+          postAcceptance3: false,
+          postDiscard3: false,
+        };
+
+    applyBattleEndToEncounters(state, summary);
+
+    if (summary.endKind === "won" && summary.enemyId) {
+      const wid = summary.enemyId;
+      if (!state.defeatedEnemyIds.includes(wid)) {
+        state.defeatedEnemyIds.push(wid);
       }
-      if (!state.integratedEnemyIds.includes(eid)) {
-        state.integratedEnemyIds.push(eid);
+      if (summary.integrationWin && !state.integratedEnemyIds.includes(wid)) {
+        state.integratedEnemyIds.push(wid);
       }
-      if (eid === "hum_unnamed") {
+      if (wid === "hum_unnamed") {
         state.flags.defeatedGulTrainer = true;
         state.flags.understoodHum = true;
       }
+      if (summary.integrationWin) {
+        state.encounter.buffAllyMinionNextBattle = true;
+      }
+      const deckTrip = tryEncounterThreeSameDeckCategory(state);
+      if (deckTrip && !state.encounter.queuedEncounter) {
+        state.encounter.queuedEncounter = deckTrip;
+      }
     }
+
     if (lastBattle?.playedEdgeCard) {
       state.edgeCardUsed = true;
     }
     combatState = null;
     state.pendingBattleEnemyId = null;
+    state.pendingBattleAllyId = null;
+    state.pendingBattlePowerScale = 1;
+    state.pendingBattleBuffAlly = false;
 
     if (rootBoss) {
       finishRootBossBattle(won);
       return;
     }
-    state.mode = "explore";
+    resumeExplore();
   },
 });
+
+function startEncounterFromPending(p: PendingEncounter): void {
+  const buffNext = state.encounter.buffAllyMinionNextBattle && !!p.allyEnemyId;
+  state.encounter.buffAllyMinionNextBattle = false;
+  state.pendingBattleAllyId = p.allyEnemyId ?? null;
+  state.pendingBattlePowerScale = p.enemyPowerLevel ?? 1;
+  state.pendingBattleBuffAlly = buffNext;
+  state.mode = "dialog";
+  runEncounterPrelude(rootEl, () => {
+    dialog.mount(p.lines, () => {
+      state.mode = "battle";
+      state.pendingBattleEnemyId = p.enemyId;
+      battleUI.mount();
+    });
+  });
+}
 
 function showEndScreen() {
   const wrap = document.createElement("div");
@@ -385,7 +526,7 @@ function showEndScreen() {
   `;
   wrap.querySelector("button")?.addEventListener("click", () => {
     wrap.remove();
-    state.mode = "explore";
+    resumeExplore();
   });
   rootEl.appendChild(wrap);
 }
@@ -412,7 +553,7 @@ function openHermitFirstMeeting() {
           dialog.mount([...react, ...HERMIT_FIRST_OUTRO], () => {
             state.flags.metHermitClearing = true;
             state.flags.hermitAnswersCount = Math.min(4, state.flags.hermitAnswersCount + 1);
-            state.mode = "explore";
+            resumeExplore();
           });
         },
       );
@@ -444,7 +585,7 @@ function openHermitDialog() {
       state.mode = "card";
       cards.mountInteractive((won) => {
         if (won) state.flags.soothed = true;
-        state.mode = "explore";
+        resumeExplore();
       });
       return;
     }
@@ -456,7 +597,7 @@ function openHermitDialog() {
       return;
     }
 
-    state.mode = "explore";
+    resumeExplore();
   });
 }
 
@@ -480,7 +621,8 @@ function openVeraDialog() {
         const tail = VERA_BRIDGE_RESOLUTION[opt.nextSceneId] ?? [];
         state.mode = "dialog";
         dialog.mount(tail, () => {
-          state.mode = "explore";
+          resumeExplore();
+          maybeShiftEncounter();
         });
       });
     });
@@ -490,27 +632,38 @@ function openVeraDialog() {
   if (state.flags.veraQuestActive && state.flags.veraBridgeReported) {
     state.mode = "dialog";
     dialog.mount(VERA_THANKS_UPDATED_MAP, () => {
-      state.mode = "explore";
+      resumeExplore();
     });
     return;
   }
 
   if (!state.flags.veraHasSpoken) {
     state.mode = "dialog";
-    dialog.mount(VERA_FIRST_INTRO, () => {
-      state.mode = "choice";
-      storyChoice.mount(VERA_QUEST_PROMPT, VERA_QUEST_OPTIONS, (opt) => {
-        state.flags.veraHasSpoken = true;
-        if (opt.id === "vera_accept") {
-          state.flags.veraQuestActive = true;
-        }
-        const tail = VERA_QUEST_RESOLUTION[opt.nextSceneId] ?? [];
-        state.mode = "dialog";
-        dialog.mount(tail, () => {
-          state.mode = "explore";
+    dialog.mount(
+      VERA_FIRST_INTRO,
+      () => {
+        state.mode = "choice";
+        storyChoice.mount(VERA_QUEST_PROMPT, VERA_QUEST_OPTIONS, (opt) => {
+          state.flags.veraHasSpoken = true;
+          if (opt.id === "vera_accept") {
+            state.flags.veraQuestActive = true;
+          }
+          const tail = VERA_QUEST_RESOLUTION[opt.nextSceneId] ?? [];
+          state.mode = "dialog";
+          dialog.mount(tail, () => {
+            resumeExplore();
+          });
         });
-      });
-    });
+      },
+      {
+        silence: () => {
+          startEncounterFromPending({ enemyId: "hum_unnamed", lines: LINES_SILENCE_GUL });
+        },
+        interrupt: () => {
+          startEncounterFromPending({ enemyId: "voice_must", lines: LINES_INTERRUPT_VOICE });
+        },
+      },
+    );
     return;
   }
 
@@ -525,7 +678,7 @@ function openVeraDialog() {
         const tail = VERA_QUEST_RESOLUTION[opt.nextSceneId] ?? [];
         state.mode = "dialog";
         dialog.mount(tail, () => {
-          state.mode = "explore";
+          resumeExplore();
         });
       });
     });
@@ -534,7 +687,7 @@ function openVeraDialog() {
 
   state.mode = "dialog";
   dialog.mount(VERA_SHORT_RETURN, () => {
-    state.mode = "explore";
+    resumeExplore();
   });
 }
 
@@ -550,7 +703,7 @@ function openLinDialog() {
         state.flags.linFirstMeetingDone = true;
         state.mode = "dialog";
         dialog.mount([...react, ...LIN_OUTRO], () => {
-          state.mode = "explore";
+          resumeExplore();
         });
       });
     });
@@ -559,7 +712,7 @@ function openLinDialog() {
 
   state.mode = "dialog";
   dialog.mount(LIN_REPEAT, () => {
-    state.mode = "explore";
+    resumeExplore();
   });
 }
 
@@ -575,11 +728,20 @@ function openIraFirstOrReoffer() {
       }
       if (opt.id === "ira_later") {
         state.flags.iraDeclinedOnce = true;
+        if (!state.encounter.refuseHelpBattleDone) {
+          state.encounter.refuseHelpBattleDone = true;
+          const tail = IRA_QUEST_RESOLUTION[opt.nextSceneId] ?? [];
+          state.mode = "dialog";
+          dialog.mount(tail, () => {
+            startEncounterFromPending({ enemyId: "voice_must", lines: LINES_REFUSE_HELP_VOICE });
+          });
+          return;
+        }
       }
       const tail = IRA_QUEST_RESOLUTION[opt.nextSceneId] ?? [];
       state.mode = "dialog";
       dialog.mount(tail, () => {
-        state.mode = "explore";
+        resumeExplore();
       });
     });
   });
@@ -593,7 +755,7 @@ function openIraDialog() {
 
   state.mode = "dialog";
   dialog.mount(IRA_SHORT_RETURN, () => {
-    state.mode = "explore";
+    resumeExplore();
   });
 }
 
@@ -612,18 +774,18 @@ function openLastCampFork() {
     state.absorption += opt.absorptionDelta;
     if (opt.id === "fork_left" || opt.id === "fork_right") {
       state.flags.lastCampForkDone = true;
-      state.mode = "explore";
+      resumeExplore();
       goToRootFromLastCamp();
       return;
     }
     if (opt.id === "fork_back") {
-      state.mode = "explore";
+      resumeExplore();
       return;
     }
     if (opt.id === "fork_stand") {
       state.mode = "dialog";
       dialog.mount([{ speaker: "Тропа", text: "Тишина. Ветка не шевелится." }], () => {
-        state.mode = "explore";
+        resumeExplore();
       });
     }
   });
@@ -658,7 +820,7 @@ function openStoryNpc(kind: StoryNpcKind) {
           state.mode = "dialog";
           dialog.mount([...react, ...HERMIT_RAVINE_OUTRO], () => {
             state.flags.hermitSecondMeetingDone = true;
-            state.mode = "explore";
+            resumeExplore();
           });
         });
       });
@@ -676,7 +838,7 @@ function openStoryNpc(kind: StoryNpcKind) {
           state.mode = "dialog";
           dialog.mount([...mid, ...LIN_DUSK_OUTRO], () => {
             state.flags.linSecondMeetingDone = true;
-            state.mode = "explore";
+            resumeExplore();
           });
         });
       });
@@ -693,7 +855,7 @@ function openStoryNpc(kind: StoryNpcKind) {
           state.mode = "dialog";
           dialog.mount([...react, ...VERA_CROSS_OUTRO], () => {
             state.flags.veraSecondMeetingDone = true;
-            state.mode = "explore";
+            resumeExplore();
           });
         });
       });
@@ -709,7 +871,7 @@ function openStoryNpc(kind: StoryNpcKind) {
           state.mode = "dialog";
           dialog.mount(IRA_CROSS_OUTRO, () => {
             state.flags.iraCrossroadsDone = true;
-            state.mode = "explore";
+            resumeExplore();
           });
         });
       });
@@ -735,7 +897,15 @@ function openStoryNpc(kind: StoryNpcKind) {
             state.mode = "dialog";
             dialog.mount(tail, () => {
               state.flags.veraLastCampDone = true;
-              state.mode = "explore";
+              if (!honest && !state.encounter.hurtfulTruthTriggered) {
+                state.encounter.hurtfulTruthTriggered = true;
+                startEncounterFromPending({
+                  enemyId: "expectation_judgment",
+                  lines: LINES_HURTFUL_TRUTH,
+                });
+                return;
+              }
+              resumeExplore();
             });
           });
         });
@@ -755,7 +925,7 @@ function openStoryNpc(kind: StoryNpcKind) {
       state.mode = "dialog";
       dialog.mount(lines, () => {
         state.flags.linLastCampDone = true;
-        state.mode = "explore";
+        resumeExplore();
       });
       break;
     }
@@ -764,7 +934,7 @@ function openStoryNpc(kind: StoryNpcKind) {
       state.mode = "dialog";
       dialog.mount(full ? IRA_CAMP_FULL : IRA_CAMP_HALF, () => {
         state.flags.iraLastCampDone = true;
-        state.mode = "explore";
+        resumeExplore();
       });
       break;
     }
@@ -779,7 +949,7 @@ function openStoryNpc(kind: StoryNpcKind) {
           state.mode = "dialog";
           dialog.mount([...react, ...HERMIT_CAMP_OUTRO], () => {
             state.flags.hermitThirdMeetingDone = true;
-            state.mode = "explore";
+            resumeExplore();
           });
         });
       });
@@ -796,7 +966,7 @@ function openStoryNpc(kind: StoryNpcKind) {
           state.mode = "dialog";
           dialog.mount(tail, () => {
             state.flags.metFigure = true;
-            state.mode = "explore";
+            resumeExplore();
           });
         });
       });
@@ -819,7 +989,17 @@ function handleZoneEnterAfterTransition(zone: WorldZoneId) {
       beginRootFinale();
       return;
     }
-    state.mode = "explore";
+    const lieEnc = tryConsumeShadowLieEncounter(state, zone);
+    if (lieEnc) {
+      startEncounterFromPending(lieEnc);
+      return;
+    }
+    const zEnc = encounterOnZoneEntered(state, zone, first);
+    if (zEnc) {
+      startEncounterFromPending(zEnc);
+      return;
+    }
+    resumeExplore();
   };
 
   if (lines && lines.length) {
@@ -831,6 +1011,27 @@ function handleZoneEnterAfterTransition(zone: WorldZoneId) {
   finishExplore();
 }
 
+function openRestAtCamp() {
+  state.mode = "choice";
+  storyChoice.mount("Сделать привал?", REST_CHOICE_OPTIONS, (opt) => {
+    if (opt.id === "rest_yes") {
+      signalEncounterRestPause(state);
+      if (!state.encounter.restVoiceBattleDone && !state.defeatedEnemyIds.includes("voice_must")) {
+        state.encounter.restVoiceBattleDone = true;
+        startEncounterFromPending({ enemyId: "voice_must", lines: LINES_REST_VOICE });
+      } else {
+        resumeExplore();
+      }
+    } else {
+      state.encounter.restDeclines += 1;
+      if (state.encounter.restDeclines >= 3) {
+        state.encounter.pendingRestInsomnia = true;
+      }
+      resumeExplore();
+    }
+  });
+}
+
 function updateExploreInteractions() {
   if (state.mode !== "explore") return;
 
@@ -838,18 +1039,22 @@ function updateExploreInteractions() {
     return;
   }
 
+  if (tryStartRest(state)) {
+    openRestAtCamp();
+    return;
+  }
+
+  if (consumePress("KeyI")) {
+    openDeckViewUi();
+    return;
+  }
+
   if (tryConsumeZoneTransition(state)) {
+    resetEncounterStandTile(state);
     handleZoneEnterAfterTransition(state.currentZoneId);
     return;
   }
 
-  if (tryStartTrainerBattle(state)) {
-    const b = ZONE_LAYOUT[state.currentZoneId].battle;
-    state.pendingBattleEnemyId = b?.enemyId ?? "hum_unnamed";
-    state.mode = "battle";
-    battleUI.mount();
-    return;
-  }
   if (tryStartHermitDialog(state)) {
     openHermitDialog();
     return;
@@ -884,7 +1089,7 @@ function startPrologueFlow() {
       const lines = AFTER_FORK_LINES[opt.nextSceneId];
       state.mode = "dialog";
       dialog.mount(lines, () => {
-        state.mode = "explore";
+        resumeExplore();
         if (!state.visitedZoneIds.includes("clearing")) {
           state.visitedZoneIds.push("clearing");
         }
@@ -906,8 +1111,24 @@ function frame(now: number) {
   }
 
   if (state.mode === "explore") {
+    tickExploreEncounterIdle(state, dt);
     updateOverworld(state, dt);
+    const enc = evaluateExploreEncounters(state);
+    if (enc) {
+      startEncounterFromPending(enc);
+    }
     updateExploreInteractions();
+  } else if (state.mode === "deck_view") {
+    deckViewAccumMs += dt;
+    if (deckViewAccumMs >= 20_000 && !state.encounter.compareInventoryDone) {
+      state.encounter.compareInventoryDone = true;
+      closeDeckViewUi();
+      startEncounterFromPending({ enemyId: "compare_others", lines: LINES_INVENTORY_COMPARE });
+    }
+    if (consumePress("KeyI") || consumePress("Escape")) {
+      closeDeckViewUi();
+      resumeExplore();
+    }
   }
 
   renderOverworld(worldCtx, state);

@@ -13,6 +13,7 @@ export function modeToVisualTheme(mode: GameMode): VisualTheme {
       return "anxiety";
     case "dialog":
     case "card":
+    case "deck_view":
       return "calm";
     case "end":
     case "finale":

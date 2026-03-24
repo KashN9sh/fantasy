@@ -86,6 +86,15 @@ export interface BattleState {
   playedEdgeCard: boolean;
   /** Контекст взвешенного добора */
   samplingContext: BattleSamplingContext | null;
+  /** Всего карт сыграно за бой (ENCOUNTER_SYSTEM §3.3) */
+  cardsPlayedTotal: number;
+  absorptionPlayStreak: number;
+  acceptancePlayStreak: number;
+  /** Ходы подряд, завершённые без сыгранной карты (не гул/бессонница) */
+  turnsNoCardEnd: number;
+  metaPostAbsorption3: boolean;
+  metaPostAcceptance3: boolean;
+  metaPostDiscard3: boolean;
 }
 
 export interface BattleCardDef {
