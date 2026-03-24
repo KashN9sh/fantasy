@@ -109,6 +109,35 @@ export function getBattleCardDef(id: string): BattleCardDef | undefined {
   return defMap.get(id);
 }
 
+/** Отображение в «рамке монстра»: уровень, ATK/DEF внизу */
+export function getBattleCardFrame(d: BattleCardDef): {
+  stars: number;
+  atk: number;
+  def: number;
+  attr: "dark" | "fire" | "earth" | "light" | "water";
+} {
+  const stars = Math.min(6, Math.max(1, d.cost === 0 ? 1 : d.cost + 2));
+  if (d.summon) {
+    return { stars, atk: d.summon.atk, def: d.summon.hp, attr: "earth" };
+  }
+  if (d.damage != null) {
+    return { stars, atk: d.damage, def: 0, attr: d.kind === "spell" ? "fire" : "dark" };
+  }
+  if (d.aoeDamage != null) {
+    return { stars, atk: d.aoeDamage, def: 0, attr: "fire" };
+  }
+  if (d.block != null) {
+    return { stars, atk: 0, def: d.block, attr: "light" };
+  }
+  if (d.addPoisonToNextAttack) {
+    return { stars, atk: 0, def: d.addPoisonToNextAttack, attr: "dark" };
+  }
+  if (d.draw) {
+    return { stars, atk: 0, def: d.draw, attr: "water" };
+  }
+  return { stars, atk: 0, def: 0, attr: "dark" };
+}
+
 /** Стартовая колода для демо-боя */
 export const STARTER_DECK_IDS: string[] = [
   "strike",

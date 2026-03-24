@@ -1,4 +1,4 @@
-import { getBattleCardDef } from "../combat/battleCardDefs";
+import { getBattleCardDef, getBattleCardFrame } from "../combat/battleCardDefs";
 import { canPlayCard, createBattle, endPlayerTurn, minionAttack, playCard } from "../combat/engine";
 import type { BattleState, TargetRef } from "../combat/types";
 
@@ -104,10 +104,33 @@ export function createBattleUI(
               if (!d) return "";
               const affordable = state.player.energy >= d.cost;
               const playable = state.phase === "player" && affordable;
-              return `<button type="button" class="battle-card ${playable ? "" : "disabled"}" data-hand="${i}" ${playable ? "" : "disabled"}>
-                <span class="bc-cost">${d.cost}</span>
-                <span class="bc-icon">${d.icon}</span>
-                <span class="bc-name">${escapeHtml(d.name)}</span>
+              const frame = getBattleCardFrame(d);
+              const starsStr = "★".repeat(frame.stars);
+              const attrMark: Record<typeof frame.attr, { sym: string; label: string }> = {
+                dark: { sym: "D", label: "Тьма" },
+                fire: { sym: "F", label: "Огонь" },
+                earth: { sym: "G", label: "Земля" },
+                light: { sym: "L", label: "Свет" },
+                water: { sym: "W", label: "Вода" },
+              };
+              const am = attrMark[frame.attr];
+              return `<button type="button" class="battle-card ygo-card ${playable ? "" : "disabled"} ${`ygo-attr--${frame.attr}`}" data-hand="${i}" ${playable ? "" : "disabled"}>
+                <span class="ygo-cost-badge" aria-label="стоимость">${d.cost}</span>
+                <div class="ygo-card-inner">
+                  <header class="ygo-header">
+                    <span class="ygo-name">${escapeHtml(d.name.toUpperCase())}</span>
+                    <span class="ygo-attr-icon" title="${escapeHtml(am.label)}" aria-label="${escapeHtml(am.label)}">${am.sym}</span>
+                  </header>
+                  <div class="ygo-stars" aria-hidden="true">${starsStr}</div>
+                  <div class="ygo-art">${d.icon}</div>
+                  <div class="ygo-textbox">
+                    <p class="ygo-desc">${escapeHtml(d.desc)}</p>
+                    <div class="ygo-stats">
+                      <span class="ygo-stat-atk">ATK / ${frame.atk}</span>
+                      <span class="ygo-stat-def">DEF / ${frame.def}</span>
+                    </div>
+                  </div>
+                </div>
               </button>`;
             })
             .join("")}
