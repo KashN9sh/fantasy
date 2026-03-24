@@ -1,6 +1,6 @@
 # Каталог предметов, эффектов и врагов
 
-Справочник для дизайна карт, боёв и текста. Смысловая рамка — [CONCEPT.md](./CONCEPT.md).
+Справочник для дизайна карт, боёв и текста. Смысловая рамка — [CONCEPT.md](./CONCEPT.md). Полная колода по категориям, вариантам пути и этапам появления — [DECK.md](./DECK.md). Вероятности выпадения и pity — [DECK_PROBABILITIES.md](./DECK_PROBABILITIES.md). Пиксель-арт и палитра по картам — [DECK_VISUAL.md](./DECK_VISUAL.md).
 
 **Канонические данные в коде:** [`src/lore/`](../src/lore/) — типы, массивы и [`catalogRepository`](../src/lore/catalogRepository.ts) (`getCatalogEntry`, `listCatalogByCategory`, `getFinalBoss`, …). Этот markdown можно держать как читаемую копию; при расхождении править сначала TypeScript, затем при необходимости синхронизировать документ вручную.
 
