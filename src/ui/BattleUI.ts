@@ -1,5 +1,6 @@
 import { getBattleCardDef, getBattleCardFrame } from "../combat/battleCardDefs";
 import { canPlayCard, createBattle, endPlayerTurn, minionAttack, playCard } from "../combat/engine";
+import type { CreateBattleOptions } from "../combat/engine";
 import type { BattleState, TargetRef } from "../combat/types";
 
 export interface BattleUIApi {
@@ -24,7 +25,9 @@ export function createBattleUI(
   opts: {
     getBattle: () => BattleState | null;
     setBattle: (b: BattleState | null) => void;
-    onClose: (won: boolean) => void;
+    onClose: (won: boolean, lastBattle: BattleState | null) => void;
+    /** Если не задано — бой с гулом и базовой колодой */
+    getBattleOptions?: () => CreateBattleOptions | undefined;
   },
 ): BattleUIApi {
   let wrap: HTMLDivElement | null = null;
@@ -241,15 +244,16 @@ export function createBattleUI(
     wrap.querySelector(".battle-exit")?.addEventListener("click", () => {
       const st = opts.getBattle();
       const won = st?.phase === "won";
+      opts.onClose(won, st);
       opts.setBattle(null);
       unmount();
-      opts.onClose(won);
     });
   }
 
   function mount() {
     unmount();
-    opts.setBattle(createBattle());
+    const o = opts.getBattleOptions?.();
+    opts.setBattle(createBattle(o ?? {}));
     pending = null;
     wrap = document.createElement("div");
     wrap.className = "battle-overlay";

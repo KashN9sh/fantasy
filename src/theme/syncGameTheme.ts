@@ -5,6 +5,8 @@ export type VisualTheme = "surface" | "anxiety" | "calm" | "finale";
 /** Соответствие режима игры палитре из docs/COLOR_SYSTEM.md */
 export function modeToVisualTheme(mode: GameMode): VisualTheme {
   switch (mode) {
+    case "intro":
+    case "choice":
     case "explore":
       return "surface";
     case "battle":
@@ -13,6 +15,8 @@ export function modeToVisualTheme(mode: GameMode): VisualTheme {
     case "card":
       return "calm";
     case "end":
+    case "finale":
+    case "credits":
       return "finale";
     default:
       return "surface";

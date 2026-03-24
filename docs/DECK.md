@@ -1,6 +1,6 @@
 # Полная колода «Тихая тропа»
 
-Все вариации карт, условия появления в колоде и диаграмма по этапам тропы. Веса и pity — [DECK_PROBABILITIES.md](./DECK_PROBABILITIES.md). Визуальные референсы карт — [DECK_VISUAL.md](./DECK_VISUAL.md). Смысл путей — [PATHS.md](./PATHS.md). Сценарий и локации — [SCENARIO.md](./SCENARIO.md). Пересечение с предметами каталога — [ITEMS_AND_ENEMIES.md](./ITEMS_AND_ENEMIES.md); при расхождении эффектов на этапе прототипа приоритет у **этого документа** как дизайна колоды, затем сверка с кодом `battleCardDefs` / лором.
+Все вариации карт, условия появления в колоде и диаграмма по этапам тропы. Веса и pity — [DECK_PROBABILITIES.md](./DECK_PROBABILITIES.md). Визуальные референсы карт — [DECK_VISUAL.md](./DECK_VISUAL.md). Смысл путей — [PATHS.md](./PATHS.md). Сценарий и локации — [SCENARIO.md](./SCENARIO.md). Как карты живут в бою (UI, ход, ресурс, анимации) — [COMBAT_SYSTEM.md](./COMBAT_SYSTEM.md). Пересечение с предметами каталога — [ITEMS_AND_ENEMIES.md](./ITEMS_AND_ENEMIES.md); при расхождении эффектов на этапе прототипа приоритет у **этого документа** как дизайна колоды, затем сверка с кодом `battleCardDefs` / лором.
 
 Реплики на картах героя — в нейтральном стиле ([CONCEPT.md](./CONCEPT.md)).
 

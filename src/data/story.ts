@@ -7,19 +7,10 @@ export function getHermitDialog(flags: GameFlags): {
   openCardAfter: boolean;
   openEndAfter: boolean;
 } {
-  if (!flags.soothed) {
+  if (!flags.metHermitClearing) {
     return {
-      lines: [
-        {
-          speaker: HERMIT_NAME,
-          text: "О, путник. Я слышу, как лес шепчет… а внутри — как будто колокол, который не даёт уснуть.",
-        },
-        {
-          speaker: HERMIT_NAME,
-          text: "Не силой его унять — только чем-то тихим. У тебя в сумке есть обычные вещи. Что ты протянешь тревоге?",
-        },
-      ],
-      openCardAfter: true,
+      lines: [],
+      openCardAfter: false,
       openEndAfter: false,
     };
   }

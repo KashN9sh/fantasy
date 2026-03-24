@@ -16,4 +16,8 @@ export const surfaceWorld = {
   trainerAccent: "#B76E6E",
   hintBg: "rgba(47, 62, 70, 0.55)",
   hintText: "#EADBC6",
+  /** NPC сюжета (SCENARIO) */
+  veraBody: "#6B8F9E",
+  linBody: "#8A7A68",
+  iraBody: "#5A6B8A",
 } as const;

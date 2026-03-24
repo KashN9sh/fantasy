@@ -1,5 +1,12 @@
-import { STARTER_DECK_IDS, getBattleCardDef } from "./battleCardDefs";
-import type { BattleCardDef, BattleState, MinionInstance, TargetRef } from "./types";
+import { BASE_DECK_IDS, getBattleCardDef } from "./battleCardDefs";
+import { bumpPityAfterDraw, pickWeightedDrawIndex } from "./deckSampling";
+import type {
+  BattleCardDef,
+  BattleSamplingContext,
+  BattleState,
+  MinionInstance,
+  TargetRef,
+} from "./types";
 
 let uidCounter = 0;
 function uid(prefix: string): string {
@@ -106,8 +113,16 @@ function applyDamageToTarget(
   damage: number,
   poisonBonus: number,
 ) {
+  let dmg = damage;
+  if (target.kind === "enemyHero" || target.kind === "enemyMinion") {
+    dmg += state.bonusDamageNextAttack;
+    if (state.bonusDamageNextAttack > 0) {
+      log(state, `Край: +${state.bonusDamageNextAttack} к удару.`);
+    }
+    state.bonusDamageNextAttack = 0;
+  }
   if (target.kind === "enemyHero") {
-    dealToCharacter(state, state.enemy, state.enemy, damage, state.enemy.name);
+    dealToCharacter(state, state.enemy, state.enemy, dmg, state.enemy.name);
     if (poisonBonus > 0) {
       state.enemy.poison += poisonBonus;
       log(state, `+${poisonBonus} яда на ${state.enemy.name}.`);
@@ -115,7 +130,7 @@ function applyDamageToTarget(
   } else if (target.kind === "enemyMinion" && target.uid) {
     const m = getEnemyMinion(state, target.uid);
     if (!m || m.hp <= 0) return;
-    dealToCharacter(state, { block: 0 }, m, damage, m.name);
+    dealToCharacter(state, { block: 0 }, m, dmg, m.name);
     if (poisonBonus > 0) {
       m.poison += poisonBonus;
       log(state, `+${poisonBonus} яда на ${m.name}.`);
@@ -150,7 +165,15 @@ function drawCards(state: BattleState, n: number) {
       shuffleInPlace(state.drawPile, mulberry32(state.turnNumber * 9973));
       log(state, "Колода перетасована из сброса.");
     }
-    const id = state.drawPile.pop();
+    let id: string | undefined;
+    if (state.samplingContext && state.drawPile.length > 0) {
+      const idx = pickWeightedDrawIndex(state.drawPile, state.samplingContext);
+      const pick = idx >= 0 ? state.drawPile.splice(idx, 1)[0] : undefined;
+      id = pick;
+      if (id) bumpPityAfterDraw(state.samplingContext, id);
+    } else {
+      id = state.drawPile.pop();
+    }
     if (!id) break;
     state.hand.push({ uid: uid("card"), defId: id });
   }
@@ -188,15 +211,53 @@ function summonMinion(
   return true;
 }
 
-export function createBattle(seed = Date.now()): BattleState {
+const ENEMY_PRESETS: Record<string, { name: string; hp: number; intentDamage: number }> = {
+  hum_unnamed: { name: "Гул без названия", hp: 40, intentDamage: 0 },
+  trainer_shadow: { name: "Тень тревоги", hp: 48, intentDamage: 8 },
+  voice_must: { name: "Голос «ты должен»", hp: 50, intentDamage: 5 },
+  compare_others: { name: "Сравнение с другими", hp: 45, intentDamage: 4 },
+  shadow_past_decision: { name: "Тень прошлого решения", hp: 55, intentDamage: 6 },
+  insomnia: { name: "Бессонница", hp: 38, intentDamage: 0 },
+  expectation_judgment: { name: "Ожидание «а что подумают»", hp: 60, intentDamage: 7 },
+  root_of_anxiety: { name: "Корень тревоги", hp: 72, intentDamage: 9 },
+};
+
+/** Мгновенная победа картой по id ([`ENEMY_BATTLES.md`](../../docs/ENEMY_BATTLES.md)) */
+const INSTANT_WIN_CARD_VS_ENEMY: Record<string, string[]> = {
+  voice_must: ["deck_boundary", "deck_tired_honest"],
+  compare_others: ["deck_walk"],
+  shadow_past_decision: ["deck_journal"],
+  insomnia: ["deck_tea_quiet"],
+  expectation_judgment: ["deck_boundary"],
+};
+
+export interface CreateBattleOptions {
+  seed?: number;
+  /** По умолчанию `hum_unnamed` (Гул) */
+  enemyId?: string;
+  deckIds?: string[];
+  /** Взвешенный добор по [`DECK_PROBABILITIES.md`](../../docs/DECK_PROBABILITIES.md) */
+  samplingContext?: BattleSamplingContext | null;
+}
+
+export function createBattle(opts: CreateBattleOptions = {}): BattleState {
+  const seed = opts.seed ?? Date.now();
   const rng = mulberry32(seed);
-  const drawPile = [...STARTER_DECK_IDS];
+  const enemyId = opts.enemyId ?? "hum_unnamed";
+  const preset = ENEMY_PRESETS[enemyId] ?? ENEMY_PRESETS.hum_unnamed;
+  const drawPile = [...(opts.deckIds ?? BASE_DECK_IDS)];
   shuffleInPlace(drawPile, rng);
   uidCounter = 0;
 
   const state: BattleState = {
     phase: "player",
     turnNumber: 1,
+    battleEnemyId: enemyId,
+    cardsPlayedThisTurn: 0,
+    gulCardStreak: 0,
+    skipNextPlayerTurn: false,
+    insomniaEmptyStreak: 0,
+    playedEdgeCard: false,
     player: {
       hp: 70,
       maxHp: 70,
@@ -206,13 +267,14 @@ export function createBattle(seed = Date.now()): BattleState {
       poison: 0,
     },
     poisonOnNextAttack: 0,
+    bonusDamageNextAttack: 0,
     enemy: {
-      name: "Тень тревоги",
-      hp: 48,
-      maxHp: 48,
+      name: preset.name,
+      hp: preset.hp,
+      maxHp: preset.hp,
       block: 0,
       poison: 0,
-      intentDamage: 8,
+      intentDamage: preset.intentDamage,
     },
     playerMinions: [],
     enemyMinions: [],
@@ -220,7 +282,14 @@ export function createBattle(seed = Date.now()): BattleState {
     drawPile,
     discardPile: [],
     log: [],
+    samplingContext: opts.samplingContext ?? null,
   };
+
+  if (enemyId === "voice_must") {
+    state.player.maxEnergy = 2;
+    state.player.energy = 2;
+    log(state, "Голос «ты должен»: нехватка готовности — только 2 энергии в первом ходу.");
+  }
 
   log(state, "Бой! Сначала тикает яд на враге, потом возьми карты.");
   tickPoisonOnSide(state, "enemy");
@@ -236,7 +305,11 @@ export function canPlayCard(state: BattleState, handIndex: number): boolean {
   if (!hc) return false;
   const def = getBattleCardDef(hc.defId);
   if (!def) return false;
-  return state.player.energy >= def.cost;
+  if (state.player.energy < def.cost) return false;
+  if (def.needsEnemyTarget) {
+    return def.damage != null || def.damageFromHandSize != null;
+  }
+  return true;
 }
 
 export function playCard(state: BattleState, handIndex: number, target?: TargetRef): string | null {
@@ -259,26 +332,101 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
   }
 
   state.player.energy -= def.cost;
+  state.cardsPlayedThisTurn++;
 
-  if (def.kind === "buff" && def.addPoisonToNextAttack) {
-    state.poisonOnNextAttack += def.addPoisonToNextAttack;
-    log(state, `Клинок отравлен (+${def.addPoisonToNextAttack}). Всего на следующий удар: ${state.poisonOnNextAttack}.`);
+  if (
+    def.instantWinIfEnemyId?.length &&
+    state.battleEnemyId &&
+    def.instantWinIfEnemyId.includes(state.battleEnemyId)
+  ) {
+    log(state, "Ты находишь паузу — можно не бороться с гулом, а просто быть.");
+    discardFromHand(state, handIndex);
+    state.phase = "won";
+    return null;
+  }
+
+  if (
+    def.instantWinIfAcceptanceAtLeast != null &&
+    state.samplingContext &&
+    state.samplingContext.acceptance >= def.instantWinIfAcceptanceAtLeast
+  ) {
+    log(state, "Тишина принятия — бой обрывается без победителя.");
+    discardFromHand(state, handIndex);
+    state.phase = "won";
+    return null;
+  }
+
+  const winCards =
+    state.battleEnemyId && INSTANT_WIN_CARD_VS_ENEMY[state.battleEnemyId];
+  if (winCards?.includes(def.id)) {
+    log(state, "Карта попадает в слабое место — враг отступает.");
+    discardFromHand(state, handIndex);
+    state.phase = "won";
+    return null;
+  }
+
+  if (def.kind === "buff" && (def.addPoisonToNextAttack || def.addBonusDamageNextAttack)) {
+    if (def.addPoisonToNextAttack) {
+      state.poisonOnNextAttack += def.addPoisonToNextAttack;
+      log(state, `Клинок отравлен (+${def.addPoisonToNextAttack}). Всего на следующий удар: ${state.poisonOnNextAttack}.`);
+    }
+    if (def.addBonusDamageNextAttack) {
+      state.bonusDamageNextAttack += def.addBonusDamageNextAttack;
+      state.playedEdgeCard = true;
+      log(state, `К следующей атаке +${def.addBonusDamageNextAttack} урона.`);
+    }
     discardFromHand(state, handIndex);
     checkBattleEnd(state);
     return null;
   }
 
-  if (def.block) {
-    state.player.block += def.block;
-    log(state, `+${def.block} блока.`);
+  if (def.id === "deck_stand") {
+    const n = state.samplingContext?.integratedEnemyIds.length ?? 0;
+    const b = Math.min(6, Math.max(1, n));
+    state.player.block += b;
+    log(state, `Стоять: +${b} блока.`);
     discardFromHand(state, handIndex);
     checkBattleEnd(state);
     return null;
   }
 
-  if (def.draw) {
-    drawCards(state, def.draw);
-    log(state, `Взято карт: ${def.draw}.`);
+  const utilHealEnergyBlockDraw =
+    def.healPlayer != null ||
+    def.addEnergy != null ||
+    def.energyToMax ||
+    def.skipNextPlayerTurn ||
+    def.block != null ||
+    def.draw != null;
+
+  if (utilHealEnergyBlockDraw) {
+    if (def.healPlayer != null) {
+      const before = state.player.hp;
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + def.healPlayer);
+      log(state, `+${state.player.hp - before} ОЗ.`);
+    }
+    if (def.addEnergy != null) {
+      state.player.energy = Math.min(
+        state.player.maxEnergy,
+        state.player.energy + def.addEnergy,
+      );
+      log(state, `Энергия +${def.addEnergy}.`);
+    }
+    if (def.energyToMax) {
+      state.player.energy = state.player.maxEnergy;
+      log(state, "Энергия на максимум.");
+    }
+    if (def.skipNextPlayerTurn) {
+      state.skipNextPlayerTurn = true;
+      log(state, "Следующий ход будет пропущен.");
+    }
+    if (def.block != null) {
+      state.player.block += def.block;
+      log(state, `+${def.block} блока.`);
+    }
+    if (def.draw != null) {
+      drawCards(state, def.draw);
+      log(state, `Взято карт: ${def.draw}.`);
+    }
     discardFromHand(state, handIndex);
     checkBattleEnd(state);
     return null;
@@ -288,6 +436,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
     const ok = summonMinion(state, "player", def.summon, def.id);
     if (!ok) {
       state.player.energy += def.cost;
+      state.cardsPlayedThisTurn--;
       return "Поле заполнено.";
     }
     discardFromHand(state, handIndex);
@@ -306,15 +455,24 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
     return null;
   }
 
-  if (def.damage != null && target) {
+  if ((def.damage != null || def.damageFromHandSize) && target) {
+    let dmg = def.damage ?? 0;
+    if (def.damageFromHandSize) {
+      dmg = Math.min(def.damageFromHandSize.cap, state.hand.length);
+      log(state, `Список сделанного: урон ${dmg} (карт в руке: ${state.hand.length}).`);
+    }
     const poisonBonus =
       def.kind === "attack" || (def.kind === "spell" && def.needsEnemyTarget)
         ? state.poisonOnNextAttack
         : 0;
-    applyDamageToTarget(state, target, def.damage, poisonBonus);
+    applyDamageToTarget(state, target, dmg, poisonBonus);
     if (poisonBonus > 0) {
       state.poisonOnNextAttack = 0;
       log(state, "Яд с клинка перенесён в цель.");
+    }
+    if (def.selfDamageAfterHit) {
+      dealToCharacter(state, state.player, state.player, def.selfDamageAfterHit, "Ты");
+      log(state, `Ты платишь ${def.selfDamageAfterHit} ОЗ.`);
     }
     discardFromHand(state, handIndex);
     checkBattleEnd(state);
@@ -322,6 +480,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
   }
 
   state.player.energy += def.cost;
+  state.cardsPlayedThisTurn--;
   return "Карта не реализована.";
 }
 
@@ -362,10 +521,35 @@ function enemyTurn(state: BattleState) {
   }
 
   const t2 = pickPlayerSideTarget(state);
-  dealToCharacter(state, t2.block, t2.hp, state.enemy.intentDamage, t2.name);
-  log(state, `${state.enemy.name} наносит удар (${state.enemy.intentDamage}).`);
+  let intent = state.enemy.intentDamage;
+  if (state.battleEnemyId === "compare_others" && state.player.block > 0) {
+    intent += 2;
+    log(state, "Сравнение подхватывает твой барьер (+2 к удару).");
+  }
+  if (state.battleEnemyId === "expectation_judgment") {
+    intent += 4;
+  }
+  if (intent > 0) {
+    dealToCharacter(state, t2.block, t2.hp, intent, t2.name);
+    log(state, `${state.enemy.name} наносит удар (${intent}).`);
+  } else {
+    log(state, `${state.enemy.name} не бьёт напрямую.`);
+  }
 
-  state.enemy.intentDamage = 6 + Math.floor(Math.random() * 5);
+  const id = state.battleEnemyId;
+  if (id === "hum_unnamed" || id === "insomnia") {
+    state.enemy.intentDamage = 0;
+  } else if (id === "voice_must") {
+    state.enemy.intentDamage = 4 + Math.floor(Math.random() * 4);
+  } else if (id === "compare_others") {
+    state.enemy.intentDamage = 3 + Math.floor(Math.random() * 4);
+  } else if (id === "shadow_past_decision") {
+    state.enemy.intentDamage = 5 + Math.floor(Math.random() * 4);
+  } else if (id === "expectation_judgment") {
+    state.enemy.intentDamage = 6 + Math.floor(Math.random() * 5);
+  } else {
+    state.enemy.intentDamage = 6 + Math.floor(Math.random() * 5);
+  }
 
   for (const m of state.enemyMinions) {
     m.canAttack = true;
@@ -381,9 +565,31 @@ function beginPlayerTurn(state: BattleState) {
   state.player.block = 0;
   log(state, `Твой ход (${state.turnNumber}).`);
 
+  if (state.turnNumber === 2 && state.battleEnemyId === "voice_must") {
+    state.player.maxEnergy = 3;
+    log(state, "Голос ослабевает — снова 3 энергии.");
+  }
+  if (state.samplingContext) {
+    state.samplingContext.turnNumber = state.turnNumber;
+  }
+
+  if (state.skipNextPlayerTurn) {
+    state.skipNextPlayerTurn = false;
+    log(state, "Ты пропускаешь ход…");
+    for (const c of state.hand) {
+      state.discardPile.push(c.defId);
+    }
+    state.hand = [];
+    state.phase = "enemy";
+    enemyTurn(state);
+    return;
+  }
+
   tickPoisonOnSide(state, "enemy");
   checkBattleEnd(state);
   if (state.phase !== "player") return;
+
+  state.cardsPlayedThisTurn = 0;
 
   state.player.energy = state.player.maxEnergy;
   for (const m of state.playerMinions) {
@@ -395,6 +601,43 @@ function beginPlayerTurn(state: BattleState) {
 
 export function endPlayerTurn(state: BattleState): string | null {
   if (state.phase !== "player") return "Сейчас не твой ход.";
+
+  if (state.battleEnemyId === "insomnia") {
+    if (state.cardsPlayedThisTurn === 0) {
+      state.insomniaEmptyStreak++;
+      log(state, `Тихий ход… (${state.insomniaEmptyStreak}/3)`);
+      if (state.insomniaEmptyStreak >= 3) {
+        state.phase = "won";
+        log(state, "Три тихих хода — ты засыпаешь. Бессонница отступает.");
+        return null;
+      }
+    } else {
+      state.insomniaEmptyStreak = 0;
+      dealToCharacter(state, state.player, state.player, 2, "Ты");
+      log(state, "Усталость не отпускает (−2 ОЗ).");
+    }
+    checkBattleEnd(state);
+    if (state.phase !== "player") return null;
+  }
+
+  if (state.battleEnemyId === "hum_unnamed") {
+    if (state.cardsPlayedThisTurn === 0) {
+      dealToCharacter(state, state.player, state.player, 2, "Ты");
+      log(state, "Ты не сыграл ни одной карты — гул забирает опору (−2 ОЗ).");
+      state.gulCardStreak = 0;
+    } else {
+      state.gulCardStreak++;
+      log(state, `Рядом с собой: ${state.gulCardStreak}/3 хода подряд с картой.`);
+      if (state.gulCardStreak >= 3) {
+        state.phase = "won";
+        log(state, "Три хода подряд ты не замираешь. Гул отступает.");
+        return null;
+      }
+    }
+    checkBattleEnd(state);
+    if (state.phase !== "player") return null;
+  }
+
   state.phase = "enemy";
   for (const c of state.hand) {
     state.discardPile.push(c.defId);

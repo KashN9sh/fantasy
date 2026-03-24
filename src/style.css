@@ -101,6 +101,81 @@ body {
   color: var(--muted);
 }
 
+.intro-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: #000;
+  color: #e8e4dc;
+}
+
+.intro-box {
+  max-width: 26rem;
+  text-align: center;
+}
+
+.intro-text {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  margin: 0 0 1.25rem;
+}
+
+.intro-hint {
+  font-size: 0.75rem;
+  color: #888;
+  margin: 0;
+}
+
+.choice-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--dialog-scrim);
+}
+
+.choice-box {
+  width: 100%;
+  max-width: 26rem;
+  background: var(--panel-bg);
+  border: 2px solid var(--accent);
+  padding: 1.25rem;
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.choice-prompt {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.choice-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.choice-btn {
+  font: inherit;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--shell-bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.choice-btn:hover {
+  filter: brightness(1.05);
+}
+
 .card-scene {
   position: absolute;
   inset: 0;

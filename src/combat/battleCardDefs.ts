@@ -1,107 +1,101 @@
 import type { BattleCardDef } from "./types";
+import { EXTENDED_CARD_DEFS } from "./extendedCardDefs";
 
-export const BATTLE_CARD_DEFS: BattleCardDef[] = [
+/** Базовые карты «Тихая тропа» ([`DECK.md`](../../docs/DECK.md)) — упрощённые эффекты для прототипа боя */
+const CORE_CARD_DEFS: BattleCardDef[] = [
   {
-    id: "strike",
-    name: "Удар",
+    id: "deck_pause",
+    name: "Пауза",
     cost: 1,
-    icon: "⚔️",
-    desc: "Нанести 5 урона врагу.",
-    needsEnemyTarget: true,
-    kind: "attack",
-    damage: 5,
-  },
-  {
-    id: "heavy_strike",
-    name: "Тяжёлый удар",
-    cost: 2,
-    icon: "🗡️",
-    desc: "Нанести 10 урона врагу.",
-    needsEnemyTarget: true,
-    kind: "attack",
-    damage: 10,
-  },
-  {
-    id: "poison_blade",
-    name: "Яд на клинок",
-    cost: 1,
-    icon: "☠️",
-    desc: "Следующий удар картой добавит 4 яда цели.",
-    needsEnemyTarget: false,
-    kind: "buff",
-    addPoisonToNextAttack: 4,
-  },
-  {
-    id: "firebolt",
-    name: "Огненный болт",
-    cost: 2,
-    icon: "🔥",
-    desc: "Нанести 7 урона выбранному врагу.",
-    needsEnemyTarget: true,
-    kind: "spell",
-    damage: 7,
-  },
-  {
-    id: "swipe",
-    name: "Размах",
-    cost: 2,
-    icon: "💨",
-    desc: "3 урона всем врагам.",
-    needsEnemyTarget: false,
-    kind: "spell",
-    aoeDamage: 3,
-  },
-  {
-    id: "shield",
-    name: "Щит",
-    cost: 1,
-    icon: "🛡️",
-    desc: "Получить 6 блока.",
+    icon: "✋",
+    desc: "+3 блока. Против «Гула» — принять тишину и закончить бой.",
     needsEnemyTarget: false,
     kind: "utility",
-    block: 6,
+    block: 3,
+    instantWinIfEnemyId: ["hum_unnamed"],
+    deckCategory: "base",
   },
   {
-    id: "scout",
-    name: "Взять круг",
-    cost: 0,
-    icon: "👁️",
-    desc: "Взять 2 карты.",
+    id: "deck_boundary",
+    name: "Граница",
+    cost: 2,
+    icon: "⬚",
+    desc: "Барьер: +4 блока.",
+    needsEnemyTarget: false,
+    kind: "utility",
+    block: 4,
+    deckCategory: "base",
+  },
+  {
+    id: "deck_breath_square",
+    name: "Дыхание «квадрат»",
+    cost: 1,
+    icon: "▢",
+    desc: "+2 энергии в этом ходу.",
+    needsEnemyTarget: false,
+    kind: "utility",
+    addEnergy: 2,
+    deckCategory: "base",
+  },
+  {
+    id: "deck_tired_honest",
+    name: "Честное «я устал»",
+    cost: 2,
+    icon: "🌒",
+    desc: "Полная энергия. Следующий ход пропускаешь.",
+    needsEnemyTarget: false,
+    kind: "utility",
+    energyToMax: true,
+    skipNextPlayerTurn: true,
+    deckCategory: "base",
+  },
+  {
+    id: "deck_tea_quiet",
+    name: "Горячий чай в тишине",
+    cost: 1,
+    icon: "🫖",
+    desc: "Восстанови 6 ОЗ.",
+    needsEnemyTarget: false,
+    kind: "utility",
+    healPlayer: 6,
+    deckCategory: "base",
+  },
+  {
+    id: "deck_walk",
+    name: "Прогулка без цели",
+    cost: 1,
+    icon: "🛤",
+    desc: "Возьми 1 карту.",
+    needsEnemyTarget: false,
+    kind: "utility",
+    draw: 1,
+    deckCategory: "base",
+  },
+  {
+    id: "deck_journal",
+    name: "Дневник",
+    cost: 1,
+    icon: "📓",
+    desc: "Возьми 2 карты.",
     needsEnemyTarget: false,
     kind: "utility",
     draw: 2,
+    deckCategory: "base",
   },
   {
-    id: "boar",
-    name: "Кабан",
-    cost: 1,
-    icon: "🐗",
-    desc: "Призыв 3/2 с натиском (атакует в этот ход).",
+    id: "deck_ask_help",
+    name: "Просьба о помощи",
+    cost: 0,
+    icon: "🤝",
+    desc: "Возьми 1 карту.",
     needsEnemyTarget: false,
-    kind: "summon",
-    summon: { name: "Кабан", atk: 3, hp: 2, taunt: false, rush: true },
-  },
-  {
-    id: "warden",
-    name: "Лесной страж",
-    cost: 2,
-    icon: "🌳",
-    desc: "Призыв 2/5 с провокацией.",
-    needsEnemyTarget: false,
-    kind: "summon",
-    summon: { name: "Страж", atk: 2, hp: 5, taunt: true, rush: false },
-  },
-  {
-    id: "sprite",
-    name: "Спрайт",
-    cost: 1,
-    icon: "✨",
-    desc: "Призыв 1/3.",
-    needsEnemyTarget: false,
-    kind: "summon",
-    summon: { name: "Спрайт", atk: 1, hp: 3, taunt: false, rush: false },
+    kind: "utility",
+    draw: 1,
+    deckCategory: "base",
   },
 ];
+
+export const BATTLE_CARD_DEFS: BattleCardDef[] = [...CORE_CARD_DEFS, ...EXTENDED_CARD_DEFS];
 
 const defMap = new Map(BATTLE_CARD_DEFS.map((c) => [c.id, c]));
 
@@ -109,7 +103,7 @@ export function getBattleCardDef(id: string): BattleCardDef | undefined {
   return defMap.get(id);
 }
 
-/** Отображение в «рамке монстра»: уровень, ATK/DEF внизу */
+/** Рамка карты в UI */
 export function getBattleCardFrame(d: BattleCardDef): {
   stars: number;
   atk: number;
@@ -117,8 +111,17 @@ export function getBattleCardFrame(d: BattleCardDef): {
   attr: "dark" | "fire" | "earth" | "light" | "water";
 } {
   const stars = Math.min(6, Math.max(1, d.cost === 0 ? 1 : d.cost + 2));
-  if (d.summon) {
-    return { stars, atk: d.summon.atk, def: d.summon.hp, attr: "earth" };
+  if (d.healPlayer != null) {
+    return { stars, atk: 0, def: d.healPlayer, attr: "light" };
+  }
+  if (d.addEnergy != null) {
+    return { stars, atk: 0, def: d.addEnergy, attr: "water" };
+  }
+  if (d.energyToMax) {
+    return { stars, atk: 0, def: 3, attr: "light" };
+  }
+  if (d.damageFromHandSize) {
+    return { stars, atk: d.damageFromHandSize.cap, def: 0, attr: "dark" };
   }
   if (d.damage != null) {
     return { stars, atk: d.damage, def: 0, attr: d.kind === "spell" ? "fire" : "dark" };
@@ -132,32 +135,34 @@ export function getBattleCardFrame(d: BattleCardDef): {
   if (d.addPoisonToNextAttack) {
     return { stars, atk: 0, def: d.addPoisonToNextAttack, attr: "dark" };
   }
+  if (d.addBonusDamageNextAttack) {
+    return { stars, atk: d.addBonusDamageNextAttack, def: 0, attr: "fire" };
+  }
   if (d.draw) {
     return { stars, atk: 0, def: d.draw, attr: "water" };
   }
-  return { stars, atk: 0, def: 0, attr: "dark" };
+  return { stars, atk: 0, def: 0, attr: "earth" };
 }
 
-/** Стартовая колода для демо-боя */
-export const STARTER_DECK_IDS: string[] = [
-  "strike",
-  "strike",
-  "strike",
-  "strike",
-  "heavy_strike",
-  "heavy_strike",
-  "poison_blade",
-  "poison_blade",
-  "firebolt",
-  "firebolt",
-  "swipe",
-  "shield",
-  "shield",
-  "boar",
-  "boar",
-  "warden",
-  "sprite",
-  "sprite",
-  "scout",
-  "scout",
+/** Стартовая колода: по 2 копии каждой базовой карты */
+export const BASE_DECK_IDS: string[] = [
+  "deck_pause",
+  "deck_pause",
+  "deck_boundary",
+  "deck_boundary",
+  "deck_breath_square",
+  "deck_breath_square",
+  "deck_tired_honest",
+  "deck_tired_honest",
+  "deck_tea_quiet",
+  "deck_tea_quiet",
+  "deck_walk",
+  "deck_walk",
+  "deck_journal",
+  "deck_journal",
+  "deck_ask_help",
+  "deck_ask_help",
 ];
+
+/** @deprecated используйте BASE_DECK_IDS */
+export const STARTER_DECK_IDS = BASE_DECK_IDS;
