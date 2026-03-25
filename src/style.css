@@ -305,20 +305,31 @@ body {
 
 /* ——— Карточный бой ——— */
 .battle-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  background: var(--battle-overlay-bg);
+  z-index: 120;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(80, 96, 128, 0.18), transparent 35%),
+    radial-gradient(circle at 80% 90%, rgba(122, 72, 64, 0.18), transparent 32%),
+    var(--battle-overlay-bg);
   overflow: auto;
-  padding: 0.35rem;
-  font-size: 0.75rem;
+  padding: 1rem;
+  font-size: 0.8rem;
 }
 
 .battle-layout {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  max-width: 100%;
-  min-height: 100%;
+  gap: 0.5rem;
+  width: min(1100px, 100%);
+  min-height: calc(100vh - 2rem);
+  margin: 0 auto;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(15, 18, 28, 0.92);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
 }
 
 .battle-header {
@@ -328,6 +339,32 @@ body {
   gap: 0.25rem;
   border-bottom: 1px solid var(--accent);
   padding-bottom: 0.25rem;
+}
+
+.battle-head-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.battle-calm-bar {
+  display: inline-flex;
+  gap: 0.12rem;
+}
+
+.battle-calm-bar i {
+  width: 0.45rem;
+  height: 0.7rem;
+  border-radius: 2px;
+  background: #5f5e59;
+}
+
+.battle-calm-bar i.on {
+  background: #7c9a7a;
+}
+
+.battle-calm-num {
+  color: var(--muted);
 }
 
 .battle-title {
@@ -349,6 +386,42 @@ body {
   border-radius: 3px;
 }
 
+.enemy-silhouette {
+  width: 100%;
+  height: 3.3rem;
+  margin-bottom: 0.25rem;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(146, 160, 190, 0.35), transparent 45%),
+    linear-gradient(180deg, rgba(35, 42, 61, 0.95), rgba(13, 16, 24, 0.95));
+  border: 1px solid rgba(132, 148, 183, 0.35);
+  animation: enemyPulse 2.3s ease-in-out infinite;
+}
+
+.enemy-silhouette--cracked {
+  background:
+    linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.12) 1px,
+      transparent 1px,
+      transparent 20%
+    ),
+    linear-gradient(180deg, rgba(52, 34, 40, 0.95), rgba(16, 12, 18, 0.95));
+}
+
+@keyframes enemyPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.86;
+  }
+  50% {
+    transform: scale(1.01);
+    opacity: 1;
+  }
+}
+
 .battle-enemy-hero.targetable {
   outline: 2px dashed var(--accent);
   cursor: pointer;
@@ -357,6 +430,10 @@ body {
 .hero-name {
   color: var(--accent);
   font-size: 0.8rem;
+}
+
+.hero-level {
+  color: var(--muted);
 }
 
 .hero-stats {
@@ -678,6 +755,12 @@ body {
   border: 1px solid var(--accent);
   border-radius: 3px;
   cursor: pointer;
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.battle-endturn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
 .battle-endturn:disabled {
@@ -700,6 +783,49 @@ body {
   margin: 0;
   font-size: 1.1rem;
   color: var(--accent);
+}
+
+.deck-preview {
+  font-size: 0.66rem;
+  color: #d8d0c2;
+  border: 1px solid rgba(216, 208, 194, 0.28);
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.battle-layout--lowhp::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at center, transparent 45%, rgba(183, 110, 110, 0.25) 100%);
+  animation: lowhpPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes lowhpPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.battle-tutorial {
+  position: absolute;
+  left: 50%;
+  top: 0.75rem;
+  transform: translateX(-50%);
+  background: rgba(20, 26, 38, 0.92);
+  border: 1px solid rgba(224, 184, 122, 0.45);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  color: #f5e7cf;
+  font-size: 0.72rem;
+  z-index: 8;
 }
 
 .battle-toast {

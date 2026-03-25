@@ -55,11 +55,9 @@ export interface BattleState {
   /** Пропустить следующий ход игрока (после «Честное „я устал“») */
   skipNextPlayerTurn: boolean;
   player: {
-    hp: number;
-    maxHp: number;
+    calm: number;
+    maxCalm: number;
     block: number;
-    energy: number;
-    maxEnergy: number;
     poison: number;
   };
   /** Яд на следующий удар картой attack/spell с уроном */
@@ -68,11 +66,21 @@ export interface BattleState {
   bonusDamageNextAttack: number;
   enemy: {
     name: string;
-    hp: number;
-    maxHp: number;
+    level: number;
+    resistance: number;
+    maxResistance: number;
     block: number;
     poison: number;
     intentDamage: number;
+    intentTier: "light" | "medium" | "heavy";
+  };
+  debuffs: {
+    panic: number;
+    guilt: number;
+    shame: number;
+    fatigue: number;
+    numbness: number;
+    regret: number;
   };
   playerMinions: MinionInstance[];
   enemyMinions: MinionInstance[];
@@ -100,6 +108,7 @@ export interface BattleState {
 export interface BattleCardDef {
   id: string;
   name: string;
+  /** Не ресурсная стоимость: когнитивная сложность карты */
   cost: number;
   icon: string;
   desc: string;
@@ -110,12 +119,12 @@ export interface BattleCardDef {
   block?: number;
   draw?: number;
   addPoisonToNextAttack?: number;
-  /** Восстановить ОЗ игрока */
+  /** Восстановить спокойствие */
   healPlayer?: number;
-  /** Добавить энергию (не выше максимума) */
-  addEnergy?: number;
-  /** Установить энергию в максимум */
-  energyToMax?: boolean;
+  /** Доп. восстановление спокойствия */
+  gainCalm?: number;
+  /** Восстановить спокойствие до максимума */
+  calmToMax?: boolean;
   /** После разыгрывания — пропустить следующий свой ход */
   skipNextPlayerTurn?: boolean;
   /** Мгновенная победа, если `battleEnemyId` в списке (напр. «Пауза» vs Гул) */

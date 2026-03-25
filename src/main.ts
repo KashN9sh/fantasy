@@ -186,6 +186,7 @@ import { createDialogController } from "./ui/Dialog";
 import { runEncounterPrelude } from "./ui/encounterPrelude";
 import { createIntroOverlay } from "./ui/IntroOverlay";
 import { createStoryChoice } from "./ui/StoryChoice";
+import { playCombatAudioEvent } from "./audio/combatAudio";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#world");
 const uiRoot = document.querySelector<HTMLElement>("#ui-root");
@@ -444,7 +445,20 @@ const battleUI = createBattleUI(rootEl, {
     enemyPowerScale: state.pendingBattlePowerScale > 1 ? state.pendingBattlePowerScale : undefined,
     buffAllyMinion: state.pendingBattleBuffAlly ? true : undefined,
   }),
+  getShift: () => ({ acceptance: state.acceptance, absorption: state.absorption }),
+  getTutorialStep: () =>
+    state.pendingBattleEnemyId === "hum_unnamed" ? state.flags.firstGulBattleTutorialStep : 3,
+  markTutorialStepDone: () => {
+    if (state.pendingBattleEnemyId !== "hum_unnamed") return;
+    state.flags.firstGulBattleTutorialStep = Math.min(3, state.flags.firstGulBattleTutorialStep + 1);
+  },
+  onEvent: (event) => {
+    playCombatAudioEvent(event);
+  },
   onClose: (won, lastBattle) => {
+    if (state.pendingBattleEnemyId === "hum_unnamed") {
+      state.flags.firstGulBattleTutorialStep = 3;
+    }
     const eid = state.pendingBattleEnemyId ?? "hum_unnamed";
     const rootBoss = eid === "root_of_anxiety";
 
@@ -461,6 +475,21 @@ const battleUI = createBattleUI(rootEl, {
         };
 
     applyBattleEndToEncounters(state, summary);
+    if (summary.endKind === "lost") {
+      const currentDeck = buildBattleDeckIds(state);
+      const available = currentDeck.filter((id) => !state.removedDeckCardIds.includes(id));
+      if (available.length > 1) {
+        const lostCard = available[Math.floor(Math.random() * available.length)];
+        state.removedDeckCardIds.push(lostCard);
+      }
+      const spawn = ZONE_LAYOUT.last_camp.spawnIn;
+      state.currentZoneId = "last_camp";
+      state.playerTileX = spawn.x;
+      state.playerTileY = spawn.y;
+      if (!state.visitedZoneIds.includes("last_camp")) {
+        state.visitedZoneIds.push("last_camp");
+      }
+    }
 
     if (summary.endKind === "won" && summary.enemyId) {
       const wid = summary.enemyId;

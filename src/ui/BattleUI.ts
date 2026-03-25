@@ -28,6 +28,10 @@ export function createBattleUI(
     onClose: (won: boolean, lastBattle: BattleState | null) => void;
     /** Если не задано — бой с гулом и базовой колодой */
     getBattleOptions?: () => CreateBattleOptions | undefined;
+    getShift?: () => { acceptance: number; absorption: number };
+    getTutorialStep?: () => number;
+    markTutorialStepDone?: () => void;
+    onEvent?: (event: "battle_open" | "card_play" | "turn_end" | "battle_close") => void;
   },
 ): BattleUIApi {
   let wrap: HTMLDivElement | null = null;
@@ -50,16 +54,47 @@ export function createBattleUI(
 
     const targeting = pending?.type === "card";
     const minionPick = pending?.type === "minion";
+    const shift = opts.getShift?.() ?? { acceptance: 0, absorption: 0 };
+    const calmSegments = 10;
+    const calmFilled = Math.max(
+      0,
+      Math.min(
+        calmSegments,
+        Math.round((state.player.calm / Math.max(1, state.player.maxCalm)) * calmSegments),
+      ),
+    );
+    const lowHp = state.player.calm / Math.max(1, state.player.maxCalm) <= 0.3;
+    const tutorialStep = opts.getTutorialStep?.() ?? 99;
+    const integrationWin = state.phase === "won" && state.enemy.resistance > 0;
+    const enemyLow = state.enemy.resistance / Math.max(1, state.enemy.maxResistance) <= 0.3;
+    const debuffs = Object.entries(state.debuffs)
+      .filter(([, turns]) => turns > 0)
+      .map(([id, turns]) => `${id}:${turns}`)
+      .join(" · ");
+    const deckPreview = state.drawPile
+      .slice(-5)
+      .map((id) => getBattleCardDef(id)?.name ?? id)
+      .join(" · ");
 
     wrap.innerHTML = `
-      <div class="battle-layout">
+      <div class="battle-layout ${lowHp ? "battle-layout--lowhp" : ""}">
         <header class="battle-header">
-          <span class="battle-title">Карточный бой</span>
-          <span class="battle-intent">Намерение: ${state.enemy.intentDamage} урона по тебе или миньону</span>
+          <div class="battle-head-block">
+            <span class="battle-title">Спокойствие</span>
+            <span class="battle-calm-bar">${Array.from({ length: calmSegments })
+              .map((_, i) => `<i class="${i < calmFilled ? "on" : ""}"></i>`)
+              .join("")}</span>
+            <span class="battle-calm-num">${calmFilled}/10</span>
+          </div>
+          <div class="battle-head-block">Ход: ${state.turnNumber}</div>
+          <div class="battle-head-block">Сдвиг: ${shift.acceptance >= shift.absorption ? "◉◉○" : "○◉◉"}</div>
         </header>
+        <div class="battle-intent">Намерение (${state.enemy.intentTier}): ${state.enemy.intentDamage} урона</div>
         <div class="battle-enemy-hero ${targeting || minionPick ? "targetable" : ""}" data-target="enemyHero">
+          <div class="enemy-silhouette ${enemyLow ? "enemy-silhouette--cracked" : ""}" aria-hidden="true"></div>
           <div class="hero-name">${escapeHtml(state.enemy.name)}</div>
-          <div class="hero-stats">${state.enemy.hp}/${state.enemy.maxHp} ОЗ
+          <div class="hero-level">Уровень: ${state.enemy.level}</div>
+          <div class="hero-stats">${state.enemy.resistance}/${state.enemy.maxResistance} устойчивости
             ${state.enemy.block ? ` · ${state.enemy.block} блок` : ""}
             ${state.enemy.poison ? ` · ☠${state.enemy.poison}` : ""}</div>
         </div>
@@ -90,10 +125,10 @@ export function createBattleUI(
             .join("")}
         </div>
         <div class="battle-player-bar">
-          <div class="hero-stats">${state.player.hp}/${state.player.maxHp} ОЗ
+          <div class="hero-stats">${state.player.calm}/${state.player.maxCalm} спокойствия
             · ${state.player.block} блок
-            · энергия ${state.player.energy}/${state.player.maxEnergy}
             ${state.player.poison ? ` · ☠${state.player.poison}` : ""}</div>
+          ${debuffs ? `<div class="hero-level">Эффекты: ${escapeHtml(debuffs)}</div>` : ""}
           ${
             state.poisonOnNextAttack > 0
               ? `<div class="blade-poison">На клинке яда: ${state.poisonOnNextAttack}</div>`
@@ -105,8 +140,7 @@ export function createBattleUI(
             .map((h, i) => {
               const d = getBattleCardDef(h.defId);
               if (!d) return "";
-              const affordable = state.player.energy >= d.cost;
-              const playable = state.phase === "player" && affordable;
+              const playable = canPlayCard(state, i);
               const frame = getBattleCardFrame(d);
               const starsStr = "★".repeat(frame.stars);
               const attrMark: Record<typeof frame.attr, { sym: string; label: string }> = {
@@ -146,17 +180,37 @@ export function createBattleUI(
                     ? "Выбери цель на стороне врага."
                     : "Выбери цель для атаки миньона."
                 }</span>`
-              : `<span class="pending-hint">Карта «Яд на клинок», потом «Удар» или атака миньона — переносит яд.</span>`
+              : `<span class="pending-hint">Колода: ${state.drawPile.length} · Сброс: ${state.discardPile.length}</span>`
           }
+          <span class="deck-preview" title="${escapeHtml(deckPreview || "Колода пуста")}">Превью колоды</span>
           <button type="button" class="battle-endturn" ${state.phase === "player" ? "" : "disabled"}>Конец хода</button>
         </footer>
       </div>
       ${
         state.phase === "won" || state.phase === "lost"
           ? `<div class="battle-modal">
-          <p>${state.phase === "won" ? "Победа!" : "Поражение."}</p>
+          <p>${
+            state.phase === "won"
+              ? integrationWin
+                ? "Ты понял(а). Враг стал тише."
+                : "Ты подавил(а). Но это вернётся."
+              : "Спокойствие упало до нуля. Что-то потеряно."
+          }</p>
           <button type="button" class="card-close battle-exit">Закрыть</button>
         </div>`
+          : ""
+      }
+      ${
+        tutorialStep < 3
+          ? `<div class="battle-tutorial">
+              ${
+                tutorialStep === 0
+                  ? "Сыграй любую карту."
+                  : tutorialStep === 1
+                    ? "Теперь заверши ход кнопкой справа."
+                    : "Враг атакует в свой ход. Следи за полоской спокойствия."
+              }
+            </div>`
           : ""
       }
     `;
@@ -186,6 +240,10 @@ export function createBattleUI(
 
         const err = playCard(st, i);
         if (err) errToast(err);
+        else {
+          opts.onEvent?.("card_play");
+          opts.markTutorialStepDone?.();
+        }
         pending = null;
         render();
       });
@@ -238,12 +296,17 @@ export function createBattleUI(
       pending = null;
       const err = endPlayerTurn(st);
       if (err) errToast(err);
+      else {
+        opts.onEvent?.("turn_end");
+        opts.markTutorialStepDone?.();
+      }
       render();
     });
 
     wrap.querySelector(".battle-exit")?.addEventListener("click", () => {
       const st = opts.getBattle();
       const won = st?.phase === "won";
+      opts.onEvent?.("battle_close");
       opts.onClose(won, st);
       opts.setBattle(null);
       unmount();
@@ -258,6 +321,7 @@ export function createBattleUI(
     wrap = document.createElement("div");
     wrap.className = "battle-overlay";
     root.appendChild(wrap);
+    opts.onEvent?.("battle_open");
     onKeyEsc = (e: KeyboardEvent) => {
       if (e.code === "Escape") {
         pending = null;

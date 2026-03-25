@@ -39,7 +39,7 @@ function log(state: BattleState, msg: string) {
 function dealToCharacter(
   state: BattleState,
   blockRef: { block: number },
-  hpRef: { hp: number },
+  hpRef: { hp: number } | { calm: number } | { resistance: number },
   amount: number,
   name: string,
 ): void {
@@ -51,8 +51,16 @@ function dealToCharacter(
     if (absorbed > 0) log(state, `${name}: блок −${absorbed}.`);
   }
   if (remaining > 0) {
-    hpRef.hp -= remaining;
-    log(state, `${name}: −${remaining} ОЗ.`);
+    if ("hp" in hpRef) {
+      hpRef.hp -= remaining;
+      log(state, `${name}: −${remaining} здоровья.`);
+    } else if ("resistance" in hpRef) {
+      hpRef.resistance -= remaining;
+      log(state, `${name}: −${remaining} устойчивости.`);
+    } else {
+      hpRef.calm -= remaining;
+      log(state, `${name}: −${remaining} спокойствия.`);
+    }
   }
 }
 
@@ -146,15 +154,20 @@ function cleanupDeadMinions(state: BattleState) {
 
 function checkBattleEnd(state: BattleState): void {
   cleanupDeadMinions(state);
-  if (state.enemy.hp <= 0) {
+  if (state.enemy.resistance <= 0) {
     state.phase = "won";
     log(state, "Победа!");
     return;
   }
-  if (state.player.hp <= 0) {
+  if (state.player.calm <= 0) {
     state.phase = "lost";
     log(state, "Поражение…");
   }
+}
+
+function drawToHandSize(state: BattleState, handSize: number): void {
+  const need = Math.max(0, handSize - state.hand.length);
+  if (need > 0) drawCards(state, need);
 }
 
 function drawCards(state: BattleState, n: number) {
@@ -212,16 +225,111 @@ function summonMinion(
   return true;
 }
 
-const ENEMY_PRESETS: Record<string, { name: string; hp: number; intentDamage: number }> = {
-  hum_unnamed: { name: "Гул без названия", hp: 40, intentDamage: 0 },
-  trainer_shadow: { name: "Тень тревоги", hp: 48, intentDamage: 8 },
-  voice_must: { name: "Голос «ты должен»", hp: 50, intentDamage: 5 },
-  compare_others: { name: "Сравнение с другими", hp: 45, intentDamage: 4 },
-  shadow_past_decision: { name: "Тень прошлого решения", hp: 55, intentDamage: 6 },
-  insomnia: { name: "Бессонница", hp: 38, intentDamage: 0 },
-  expectation_judgment: { name: "Ожидание «а что подумают»", hp: 60, intentDamage: 7 },
-  root_of_anxiety: { name: "Корень тревоги", hp: 72, intentDamage: 9 },
-  coalition_anxiety: { name: "Коалиция голосов", hp: 52, intentDamage: 5 },
+type EnemyAttackTier = { tier: "light" | "medium" | "heavy"; weight: number; min: number; max: number };
+
+const ENEMY_PRESETS: Record<
+  string,
+  { name: string; level: number; hp: number; intentDamage: number; attacks: EnemyAttackTier[] }
+> = {
+  hum_unnamed: {
+    name: "Гул без названия",
+    level: 2,
+    hp: 40,
+    intentDamage: 0,
+    attacks: [
+      { tier: "light", weight: 50, min: 0, max: 0 },
+      { tier: "medium", weight: 30, min: 0, max: 0 },
+      { tier: "heavy", weight: 20, min: 0, max: 0 },
+    ],
+  },
+  trainer_shadow: {
+    name: "Тень тревоги",
+    level: 6,
+    hp: 48,
+    intentDamage: 8,
+    attacks: [
+      { tier: "light", weight: 50, min: 6, max: 7 },
+      { tier: "medium", weight: 30, min: 8, max: 9 },
+      { tier: "heavy", weight: 20, min: 10, max: 12 },
+    ],
+  },
+  voice_must: {
+    name: "Голос «ты должен»",
+    level: 6,
+    hp: 50,
+    intentDamage: 5,
+    attacks: [
+      { tier: "light", weight: 50, min: 4, max: 5 },
+      { tier: "medium", weight: 30, min: 6, max: 7 },
+      { tier: "heavy", weight: 20, min: 8, max: 9 },
+    ],
+  },
+  compare_others: {
+    name: "Сравнение с другими",
+    level: 5,
+    hp: 45,
+    intentDamage: 4,
+    attacks: [
+      { tier: "light", weight: 50, min: 3, max: 4 },
+      { tier: "medium", weight: 30, min: 5, max: 6 },
+      { tier: "heavy", weight: 20, min: 7, max: 8 },
+    ],
+  },
+  shadow_past_decision: {
+    name: "Тень прошлого решения",
+    level: 8,
+    hp: 55,
+    intentDamage: 6,
+    attacks: [
+      { tier: "light", weight: 50, min: 5, max: 6 },
+      { tier: "medium", weight: 30, min: 7, max: 8 },
+      { tier: "heavy", weight: 20, min: 9, max: 10 },
+    ],
+  },
+  insomnia: {
+    name: "Бессонница",
+    level: 4,
+    hp: 38,
+    intentDamage: 0,
+    attacks: [
+      { tier: "light", weight: 50, min: 0, max: 0 },
+      { tier: "medium", weight: 30, min: 0, max: 0 },
+      { tier: "heavy", weight: 20, min: 0, max: 0 },
+    ],
+  },
+  expectation_judgment: {
+    name: "Ожидание «а что подумают»",
+    level: 10,
+    hp: 60,
+    intentDamage: 7,
+    attacks: [
+      { tier: "light", weight: 50, min: 6, max: 7 },
+      { tier: "medium", weight: 30, min: 8, max: 9 },
+      { tier: "heavy", weight: 20, min: 10, max: 12 },
+    ],
+  },
+  root_of_anxiety: {
+    name: "Корень тревоги",
+    level: 16,
+    hp: 72,
+    intentDamage: 9,
+    attacks: [
+      { tier: "light", weight: 50, min: 8, max: 9 },
+      { tier: "medium", weight: 30, min: 10, max: 12 },
+      { tier: "heavy", weight: 20, min: 13, max: 15 },
+    ],
+  },
+  coalition_anxiety: {
+    name: "Коалиция голосов",
+    level: 9,
+    hp: 52,
+    intentDamage: 5,
+    attacks: [
+      { tier: "light", weight: 50, min: 5, max: 6 },
+      { tier: "medium", weight: 30, min: 7, max: 8 },
+      { tier: "heavy", weight: 20, min: 9, max: 11 },
+    ],
+  },
 };
 
 /** Мгновенная победа картой по id ([`ENEMY_BATTLES.md`](../../docs/ENEMY_BATTLES.md)) */
@@ -242,10 +350,59 @@ export interface CreateBattleOptions {
   samplingContext?: BattleSamplingContext | null;
   /** Второй враг как enemy-миньон (ENCOUNTER_SYSTEM) */
   allyEnemyId?: string;
-  /** Множитель ОЗ и намерения главного героя (реванш) */
+  /** Множитель устойчивости и намерения главного врага (реванш) */
   enemyPowerScale?: number;
   /** §3.6: усилить союзного миньона после «понимания» */
   buffAllyMinion?: boolean;
+}
+
+function rollEnemyIntent(enemyId: string): { dmg: number; tier: "light" | "medium" | "heavy" } {
+  const preset = ENEMY_PRESETS[enemyId] ?? ENEMY_PRESETS.hum_unnamed;
+  const attacks = preset.attacks;
+  const total = attacks.reduce((s, a) => s + a.weight, 0);
+  let r = Math.random() * total;
+  for (const a of attacks) {
+    r -= a.weight;
+    if (r <= 0) {
+      const span = a.max - a.min + 1;
+      const dmg = a.min + Math.floor(Math.random() * Math.max(1, span));
+      return { dmg, tier: a.tier };
+    }
+  }
+  const last = attacks[attacks.length - 1]!;
+  return { dmg: last.min, tier: last.tier };
+}
+
+function effectiveCardCost(state: BattleState, baseCost: number): number {
+  if (state.debuffs.fatigue > 0 || state.debuffs.regret > 0) {
+    return baseCost > 0 ? 1 : 0;
+  }
+  return 0;
+}
+
+function removeDebuffByCard(state: BattleState, cardId: string): void {
+  if (cardId === "deck_pause" || cardId === "deck_breath_square") {
+    state.debuffs.panic = 0;
+  }
+  if (cardId === "deck_boundary" || cardId === "deck_permission") {
+    state.debuffs.guilt = 0;
+    state.debuffs.shame = 0;
+  }
+  if (cardId === "deck_tea_quiet") {
+    state.debuffs.fatigue = 0;
+  }
+  if (cardId === "deck_journal" || cardId === "deck_companion") {
+    state.debuffs.regret = 0;
+  }
+}
+
+function tickDebuffsStartTurn(state: BattleState): void {
+  state.debuffs.guilt = Math.max(0, state.debuffs.guilt - 1);
+  state.debuffs.shame = Math.max(0, state.debuffs.shame - 1);
+  state.debuffs.panic = Math.max(0, state.debuffs.panic - 1);
+  state.debuffs.numbness = Math.max(0, state.debuffs.numbness - 1);
+  state.debuffs.regret = Math.max(0, state.debuffs.regret - 1);
+  if (state.debuffs.fatigue > 0) state.debuffs.fatigue -= 1;
 }
 
 function trackCardPlayMeta(state: BattleState, def: BattleCardDef): void {
@@ -299,7 +456,7 @@ export function summarizeBattleEnd(state: BattleState): BattleEndSummary {
   if (state.phase === "won") {
     return {
       endKind: "won",
-      integrationWin: state.enemy.hp > 0,
+      integrationWin: state.enemy.resistance > 0,
       enemyId: eid,
       ...meta,
     };
@@ -342,22 +499,30 @@ export function createBattle(opts: CreateBattleOptions = {}): BattleState {
     insomniaEmptyStreak: 0,
     playedEdgeCard: false,
     player: {
-      hp: 70,
-      maxHp: 70,
+      calm: 5,
+      maxCalm: 10,
       block: 0,
-      energy: 3,
-      maxEnergy: 3,
       poison: 0,
     },
     poisonOnNextAttack: 0,
     bonusDamageNextAttack: 0,
     enemy: {
       name: preset.name,
-      hp: preset.hp,
-      maxHp: preset.hp,
+      level: preset.level,
+      resistance: preset.hp,
+      maxResistance: preset.hp,
       block: 0,
       poison: 0,
       intentDamage: preset.intentDamage,
+      intentTier: "light",
+    },
+    debuffs: {
+      panic: 0,
+      guilt: 0,
+      shame: 0,
+      fatigue: 0,
+      numbness: 0,
+      regret: 0,
     },
     playerMinions: [],
     enemyMinions: [],
@@ -377,9 +542,10 @@ export function createBattle(opts: CreateBattleOptions = {}): BattleState {
 
   const scale = opts.enemyPowerScale ?? 1;
   if (scale > 1) {
-    state.enemy.maxHp = Math.floor(state.enemy.maxHp * scale);
-    state.enemy.hp = state.enemy.maxHp;
+    state.enemy.maxResistance = Math.floor(state.enemy.maxResistance * scale);
+    state.enemy.resistance = state.enemy.maxResistance;
     state.enemy.intentDamage = Math.floor(state.enemy.intentDamage * scale);
+    state.enemy.level += Math.max(1, Math.floor(scale - 1));
     log(state, `Враг возвращается сильнее (×${scale}).`);
   }
 
@@ -390,11 +556,9 @@ export function createBattle(opts: CreateBattleOptions = {}): BattleState {
     pushEchoMinion(state, opts.allyEnemyId, opts.buffAllyMinion ?? false);
   }
 
-  if (enemyId === "voice_must") {
-    state.player.maxEnergy = 2;
-    state.player.energy = 2;
-    log(state, "Голос «ты должен»: нехватка готовности — только 2 энергии в первом ходу.");
-  }
+  const openingIntent = rollEnemyIntent(enemyId);
+  state.enemy.intentDamage = openingIntent.dmg;
+  state.enemy.intentTier = openingIntent.tier;
 
   log(state, "Бой! Сначала тикает яд на враге, потом возьми карты.");
   tickPoisonOnSide(state, "enemy");
@@ -410,7 +574,10 @@ export function canPlayCard(state: BattleState, handIndex: number): boolean {
   if (!hc) return false;
   const def = getBattleCardDef(hc.defId);
   if (!def) return false;
-  if (state.player.energy < def.cost) return false;
+  if (state.debuffs.numbness > 0 && def.id === "deck_ask_help") return false;
+  if (state.debuffs.panic > 0 && def.id === "silence_finale") return false;
+  const strainCost = effectiveCardCost(state, def.cost);
+  if (state.player.calm <= strainCost) return false;
   if (def.needsEnemyTarget) {
     return def.damage != null || def.damageFromHandSize != null;
   }
@@ -423,7 +590,14 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
   if (!hc) return "Нет карты.";
   const def = getBattleCardDef(hc.defId);
   if (!def) return "Неизвестная карта.";
-  if (state.player.energy < def.cost) return "Мало энергии.";
+  if (state.debuffs.numbness > 0 && def.id === "deck_ask_help") {
+    return "Онемение не даёт попросить о помощи.";
+  }
+  if (state.debuffs.panic > 0 && def.id === "silence_finale") {
+    return "Паника мешает сыграть «Тишину».";
+  }
+  const cardCost = effectiveCardCost(state, def.cost);
+  if (state.player.calm <= cardCost) return "Слишком тяжело: не хватает спокойствия.";
 
   if (def.needsEnemyTarget) {
     if (!target) return "Нужна цель.";
@@ -436,7 +610,10 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
     if (!ok) return "Недопустимая цель.";
   }
 
-  state.player.energy -= def.cost;
+  if (cardCost > 0) {
+    state.player.calm = Math.max(0, state.player.calm - cardCost);
+    log(state, `Напряжение: −${cardCost} спокойствия.`);
+  }
   state.cardsPlayedThisTurn++;
   trackCardPlayMeta(state, def);
 
@@ -447,6 +624,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
   ) {
     log(state, "Ты находишь паузу — можно не бороться с гулом, а просто быть.");
     discardFromHand(state, handIndex);
+    removeDebuffByCard(state, def.id);
     state.phase = "won";
     return null;
   }
@@ -458,6 +636,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
   ) {
     log(state, "Тишина принятия — бой обрывается без победителя.");
     discardFromHand(state, handIndex);
+    removeDebuffByCard(state, def.id);
     state.phase = "won";
     return null;
   }
@@ -467,6 +646,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
   if (winCards?.includes(def.id)) {
     log(state, "Карта попадает в слабое место — враг отступает.");
     discardFromHand(state, handIndex);
+    removeDebuffByCard(state, def.id);
     state.phase = "won";
     return null;
   }
@@ -482,6 +662,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
       log(state, `К следующей атаке +${def.addBonusDamageNextAttack} урона.`);
     }
     discardFromHand(state, handIndex);
+    removeDebuffByCard(state, def.id);
     checkBattleEnd(state);
     return null;
   }
@@ -492,34 +673,33 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
     state.player.block += b;
     log(state, `Стоять: +${b} блока.`);
     discardFromHand(state, handIndex);
+    removeDebuffByCard(state, def.id);
     checkBattleEnd(state);
     return null;
   }
 
   const utilHealEnergyBlockDraw =
     def.healPlayer != null ||
-    def.addEnergy != null ||
-    def.energyToMax ||
+    def.gainCalm != null ||
+    def.calmToMax ||
     def.skipNextPlayerTurn ||
     def.block != null ||
     def.draw != null;
 
   if (utilHealEnergyBlockDraw) {
     if (def.healPlayer != null) {
-      const before = state.player.hp;
-      state.player.hp = Math.min(state.player.maxHp, state.player.hp + def.healPlayer);
-      log(state, `+${state.player.hp - before} ОЗ.`);
+      const before = state.player.calm;
+      state.player.calm = Math.min(state.player.maxCalm, state.player.calm + def.healPlayer);
+      log(state, `+${state.player.calm - before} спокойствия.`);
     }
-    if (def.addEnergy != null) {
-      state.player.energy = Math.min(
-        state.player.maxEnergy,
-        state.player.energy + def.addEnergy,
-      );
-      log(state, `Энергия +${def.addEnergy}.`);
+    if (def.gainCalm != null) {
+      const before = state.player.calm;
+      state.player.calm = Math.min(state.player.maxCalm, state.player.calm + def.gainCalm);
+      log(state, `+${state.player.calm - before} спокойствия.`);
     }
-    if (def.energyToMax) {
-      state.player.energy = state.player.maxEnergy;
-      log(state, "Энергия на максимум.");
+    if (def.calmToMax) {
+      state.player.calm = state.player.maxCalm;
+      log(state, "Спокойствие восстановлено до максимума.");
     }
     if (def.skipNextPlayerTurn) {
       state.skipNextPlayerTurn = true;
@@ -534,6 +714,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
       log(state, `Взято карт: ${def.draw}.`);
     }
     discardFromHand(state, handIndex);
+    removeDebuffByCard(state, def.id);
     checkBattleEnd(state);
     return null;
   }
@@ -541,12 +722,15 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
   if (def.kind === "summon" && def.summon) {
     const ok = summonMinion(state, "player", def.summon, def.id);
     if (!ok) {
-      state.player.energy += def.cost;
+      if (cardCost > 0) {
+        state.player.calm = Math.min(state.player.maxCalm, state.player.calm + cardCost);
+      }
       state.cardsPlayedThisTurn--;
       state.cardsPlayedTotal = Math.max(0, state.cardsPlayedTotal - 1);
       return "Поле заполнено.";
     }
     discardFromHand(state, handIndex);
+    removeDebuffByCard(state, def.id);
     checkBattleEnd(state);
     return null;
   }
@@ -558,6 +742,7 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
     }
     log(state, `Урон по всем врагам: ${def.aoeDamage}.`);
     discardFromHand(state, handIndex);
+    removeDebuffByCard(state, def.id);
     checkBattleEnd(state);
     return null;
   }
@@ -579,14 +764,17 @@ export function playCard(state: BattleState, handIndex: number, target?: TargetR
     }
     if (def.selfDamageAfterHit) {
       dealToCharacter(state, state.player, state.player, def.selfDamageAfterHit, "Ты");
-      log(state, `Ты платишь ${def.selfDamageAfterHit} ОЗ.`);
+      log(state, `Ты платишь ${def.selfDamageAfterHit} спокойствия.`);
     }
     discardFromHand(state, handIndex);
+    removeDebuffByCard(state, def.id);
     checkBattleEnd(state);
     return null;
   }
 
-  state.player.energy += def.cost;
+  if (cardCost > 0) {
+    state.player.calm = Math.min(state.player.maxCalm, state.player.calm + cardCost);
+  }
   state.cardsPlayedThisTurn--;
   return "Карта не реализована.";
 }
@@ -595,7 +783,9 @@ function hasPlayerTaunt(state: BattleState): boolean {
   return state.playerMinions.some((m) => m.taunt && m.hp > 0);
 }
 
-function pickPlayerSideTarget(state: BattleState): { block: { block: number }; hp: { hp: number }; name: string } {
+function pickPlayerSideTarget(
+  state: BattleState,
+): { block: { block: number }; hp: { hp: number } | { calm: number }; name: string } {
   if (hasPlayerTaunt(state)) {
     const taunts = state.playerMinions.filter((m) => m.taunt && m.hp > 0);
     const m = taunts[Math.floor(Math.random() * taunts.length)]!;
@@ -635,30 +825,36 @@ function enemyTurn(state: BattleState) {
   }
   if (state.battleEnemyId === "expectation_judgment") {
     intent += 4;
+    state.debuffs.shame = Math.max(state.debuffs.shame, 2);
+    log(state, "Стыд: защита ослабевает.");
+  }
+  if (state.battleEnemyId === "voice_must") {
+    state.debuffs.guilt = Math.max(state.debuffs.guilt, 2);
+    if (Math.random() < 0.35) state.debuffs.panic = Math.max(state.debuffs.panic, 1);
+  }
+  if (state.battleEnemyId === "shadow_past_decision") {
+    state.debuffs.regret = Math.max(state.debuffs.regret, 2);
+  }
+  if (state.battleEnemyId === "insomnia") {
+    state.debuffs.fatigue = Math.max(state.debuffs.fatigue, 2);
+  }
+  const guiltPenalty = state.debuffs.guilt > 0 ? 1 : 0;
+  const shamePenalty = state.debuffs.shame > 0 ? 2 : 0;
+  const finalBlock = Math.max(0, t2.block.block - guiltPenalty - shamePenalty);
+  if (guiltPenalty || shamePenalty) {
+    log(state, `Дебаффы снижают защиту на ${guiltPenalty + shamePenalty}.`);
   }
   if (intent > 0) {
-    dealToCharacter(state, t2.block, t2.hp, intent, t2.name);
+    dealToCharacter(state, { block: finalBlock }, t2.hp, intent, t2.name);
     log(state, `${state.enemy.name} наносит удар (${intent}).`);
   } else {
     log(state, `${state.enemy.name} не бьёт напрямую.`);
   }
 
-  const id = state.battleEnemyId;
-  if (id === "hum_unnamed" || id === "insomnia") {
-    state.enemy.intentDamage = 0;
-  } else if (id === "voice_must") {
-    state.enemy.intentDamage = 4 + Math.floor(Math.random() * 4);
-  } else if (id === "compare_others") {
-    state.enemy.intentDamage = 3 + Math.floor(Math.random() * 4);
-  } else if (id === "shadow_past_decision") {
-    state.enemy.intentDamage = 5 + Math.floor(Math.random() * 4);
-  } else if (id === "expectation_judgment") {
-    state.enemy.intentDamage = 6 + Math.floor(Math.random() * 5);
-  } else if (id === "coalition_anxiety") {
-    state.enemy.intentDamage = 5 + Math.floor(Math.random() * 5);
-  } else {
-    state.enemy.intentDamage = 6 + Math.floor(Math.random() * 5);
-  }
+  const id = state.battleEnemyId ?? "hum_unnamed";
+  const nextIntent = rollEnemyIntent(id);
+  state.enemy.intentDamage = nextIntent.dmg;
+  state.enemy.intentTier = nextIntent.tier;
 
   for (const m of state.enemyMinions) {
     m.canAttack = true;
@@ -673,11 +869,8 @@ function beginPlayerTurn(state: BattleState) {
   state.turnNumber++;
   state.player.block = 0;
   log(state, `Твой ход (${state.turnNumber}).`);
+  tickDebuffsStartTurn(state);
 
-  if (state.turnNumber === 2 && state.battleEnemyId === "voice_must") {
-    state.player.maxEnergy = 3;
-    log(state, "Голос ослабевает — снова 3 энергии.");
-  }
   if (state.samplingContext) {
     state.samplingContext.turnNumber = state.turnNumber;
   }
@@ -700,12 +893,14 @@ function beginPlayerTurn(state: BattleState) {
 
   state.cardsPlayedThisTurn = 0;
 
-  state.player.energy = state.player.maxEnergy;
+  state.player.calm = Math.min(state.player.maxCalm, state.player.calm + 1);
+  log(state, "Начало хода: +1 спокойствие.");
+  if (state.debuffs.panic > 0) log(state, "Паника мешает держать ритм.");
   for (const m of state.playerMinions) {
     m.canAttack = true;
   }
 
-  drawCards(state, 1);
+  drawToHandSize(state, 5);
 }
 
 export function endPlayerTurn(state: BattleState): string | null {
@@ -723,7 +918,7 @@ export function endPlayerTurn(state: BattleState): string | null {
     } else {
       state.insomniaEmptyStreak = 0;
       dealToCharacter(state, state.player, state.player, 2, "Ты");
-      log(state, "Усталость не отпускает (−2 ОЗ).");
+      log(state, "Усталость не отпускает (−2 спокойствия).");
     }
     checkBattleEnd(state);
     if (state.phase !== "player") return null;
@@ -732,7 +927,7 @@ export function endPlayerTurn(state: BattleState): string | null {
   if (state.battleEnemyId === "hum_unnamed") {
     if (state.cardsPlayedThisTurn === 0) {
       dealToCharacter(state, state.player, state.player, 2, "Ты");
-      log(state, "Ты не сыграл ни одной карты — гул забирает опору (−2 ОЗ).");
+      log(state, "Ты не сыграл ни одной карты — гул забирает опору (−2 спокойствия).");
       state.gulCardStreak = 0;
     } else {
       state.gulCardStreak++;

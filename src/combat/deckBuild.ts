@@ -70,7 +70,9 @@ export function buildBattleDeckIds(state: GameState): string[] {
     out.push("deck_echo_echo");
   }
 
-  return out;
+  if (state.removedDeckCardIds.length === 0) return out;
+  const removed = new Set(state.removedDeckCardIds);
+  return out.filter((id) => !removed.has(id));
 }
 
 /** §3.3: три карты одной категории (не base) в колоде боя */

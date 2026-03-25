@@ -92,6 +92,8 @@ export interface GameFlags {
   encounterShadowFromLieUsed: boolean;
   /** Завершён финальный поток (титры можно не повторять) */
   finaleComplete: boolean;
+  /** Туториал первого боя с Гулом: 0..3 (3 = завершён) */
+  firstGulBattleTutorialStep: number;
 }
 
 export interface AfterDialog {
@@ -238,6 +240,8 @@ export interface GameState {
   pendingBattleBuffAlly: boolean;
   /** Понятые враги — задел под карты интеграции (фаза 2) */
   integratedEnemyIds: string[];
+  /** Карты, потерянные навсегда после мягкого поражения */
+  removedDeckCardIds: string[];
   /** Текущая зона оверворлда ([`WORLD_ZONE_IDS`](../data/worldZones.ts)) */
   currentZoneId: WorldZoneId;
   /** Уже показан входной текст при первом заходе в зону */
@@ -294,6 +298,7 @@ export function createInitialState(): GameState {
       encounterIdleGulUsed: false,
       encounterShadowFromLieUsed: false,
       finaleComplete: false,
+      firstGulBattleTutorialStep: 0,
     },
     playerTileX: 10,
     playerTileY: 11,
@@ -308,6 +313,7 @@ export function createInitialState(): GameState {
     pendingBattlePowerScale: 1,
     pendingBattleBuffAlly: false,
     integratedEnemyIds: [],
+    removedDeckCardIds: [],
     currentZoneId: "clearing",
     visitedZoneIds: [],
     neverFledBattle: true,

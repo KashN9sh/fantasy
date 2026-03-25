@@ -31,10 +31,10 @@ const CORE_CARD_DEFS: BattleCardDef[] = [
     name: "Дыхание «квадрат»",
     cost: 1,
     icon: "▢",
-    desc: "+2 энергии в этом ходу.",
+    desc: "+2 спокойствия.",
     needsEnemyTarget: false,
     kind: "utility",
-    addEnergy: 2,
+    gainCalm: 2,
     deckCategory: "base",
   },
   {
@@ -42,10 +42,10 @@ const CORE_CARD_DEFS: BattleCardDef[] = [
     name: "Честное «я устал»",
     cost: 2,
     icon: "🌒",
-    desc: "Полная энергия. Следующий ход пропускаешь.",
+    desc: "Восстанови спокойствие до 10. Следующий ход пропускаешь.",
     needsEnemyTarget: false,
     kind: "utility",
-    energyToMax: true,
+    calmToMax: true,
     skipNextPlayerTurn: true,
     deckCategory: "base",
   },
@@ -54,10 +54,10 @@ const CORE_CARD_DEFS: BattleCardDef[] = [
     name: "Горячий чай в тишине",
     cost: 1,
     icon: "🫖",
-    desc: "Восстанови 6 ОЗ.",
+    desc: "Восстанови 2 спокойствия.",
     needsEnemyTarget: false,
     kind: "utility",
-    healPlayer: 6,
+    healPlayer: 2,
     deckCategory: "base",
   },
   {
@@ -114,11 +114,11 @@ export function getBattleCardFrame(d: BattleCardDef): {
   if (d.healPlayer != null) {
     return { stars, atk: 0, def: d.healPlayer, attr: "light" };
   }
-  if (d.addEnergy != null) {
-    return { stars, atk: 0, def: d.addEnergy, attr: "water" };
+  if (d.gainCalm != null) {
+    return { stars, atk: 0, def: d.gainCalm, attr: "water" };
   }
-  if (d.energyToMax) {
-    return { stars, atk: 0, def: 3, attr: "light" };
+  if (d.calmToMax) {
+    return { stars, atk: 0, def: 10, attr: "light" };
   }
   if (d.damageFromHandSize) {
     return { stars, atk: d.damageFromHandSize.cap, def: 0, attr: "dark" };
