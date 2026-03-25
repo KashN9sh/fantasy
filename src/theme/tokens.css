@@ -16,6 +16,24 @@ html {
   --ui-warning: #d68c6e;
   --ui-text: #2f3e46;
   --ui-text-muted: #8f9e8f;
+  --ui-font-body: "Press Start 2P", "Tiny5", "Courier New", monospace;
+  --ui-font-display: "Press Start 2P", "Tiny5", "Courier New", monospace;
+  --ui-grid: 3px;
+  --ui-space-1: calc(var(--ui-grid) * 1);
+  --ui-space-2: calc(var(--ui-grid) * 2);
+  --ui-space-3: calc(var(--ui-grid) * 3);
+  --ui-space-4: calc(var(--ui-grid) * 4);
+  --ui-space-5: calc(var(--ui-grid) * 6);
+  --ui-space-6: calc(var(--ui-grid) * 8);
+  --ui-border-thin: calc(var(--ui-grid) * 1);
+  --ui-border-regular: calc(var(--ui-grid) * 2);
+  --ui-border-strong: calc(var(--ui-grid) * 3);
+  --ui-radius-pixel: 0;
+  --ui-line-height-tight: 1.2;
+  --ui-line-height-body: 1.45;
+  --ui-letter-spacing-ui: 0.04em;
+  --ui-shadow-pixel: calc(var(--ui-grid) * 1) calc(var(--ui-grid) * 1) 0 rgba(47, 62, 70, 0.28);
+  --ui-focus-ring: 0 0 0 0 rgba(224, 184, 122, 0), calc(var(--ui-grid) * 1) calc(var(--ui-grid) * 1) 0 rgba(224, 184, 122, 0.45);
 }
 
 /* По умолчанию и «На поверхности» */
@@ -38,6 +56,16 @@ html:not([data-game-state]) {
   --minion-bg: rgba(255, 252, 248, 0.55);
   --minion-border: #aa9a8a;
   --blade-poison: #6a8e6a;
+  --ui-panel-fill: rgba(255, 250, 245, 0.95);
+  --ui-panel-fill-strong: rgba(250, 240, 228, 0.98);
+  --ui-panel-line: #c49a6e;
+  --ui-panel-line-soft: #aa9a8a;
+  --ui-button-fill: #eadbc6;
+  --ui-button-fill-hover: #f5ebe0;
+  --ui-button-text: #2f3e46;
+  --ui-overlay-scrim: rgba(47, 62, 70, 0.5);
+  --ui-chip-fill: rgba(255, 248, 240, 0.92);
+  --ui-chip-line: #c49a6e;
 }
 
 html[data-game-state="anxiety"] {
@@ -58,6 +86,16 @@ html[data-game-state="anxiety"] {
   --minion-bg: rgba(55, 62, 72, 0.92);
   --minion-border: #3a4a55;
   --blade-poison: #c4a45a;
+  --ui-panel-fill: rgba(45, 55, 65, 0.96);
+  --ui-panel-fill-strong: rgba(36, 44, 54, 0.98);
+  --ui-panel-line: #c4a45a;
+  --ui-panel-line-soft: #3a4a55;
+  --ui-button-fill: #4a5b6e;
+  --ui-button-fill-hover: #56687c;
+  --ui-button-text: #e8e4dc;
+  --ui-overlay-scrim: rgba(10, 14, 18, 0.72);
+  --ui-chip-fill: rgba(55, 62, 72, 0.95);
+  --ui-chip-line: #c4a45a;
 }
 
 html[data-game-state="calm"] {
@@ -78,6 +116,16 @@ html[data-game-state="calm"] {
   --minion-bg: rgba(255, 252, 248, 0.7);
   --minion-border: #c68b6e;
   --blade-poison: #6a8e6a;
+  --ui-panel-fill: rgba(255, 252, 248, 0.98);
+  --ui-panel-fill-strong: rgba(245, 235, 224, 0.98);
+  --ui-panel-line: #e0b87a;
+  --ui-panel-line-soft: #c68b6e;
+  --ui-button-fill: #eadbc6;
+  --ui-button-fill-hover: #f5ebe0;
+  --ui-button-text: #2f3e46;
+  --ui-overlay-scrim: rgba(47, 62, 70, 0.38);
+  --ui-chip-fill: rgba(255, 248, 240, 0.92);
+  --ui-chip-line: #7c9a7a;
 }
 
 html[data-game-state="finale"] {
@@ -98,4 +146,14 @@ html[data-game-state="finale"] {
   --minion-bg: rgba(245, 240, 232, 0.85);
   --minion-border: #a89888;
   --blade-poison: #8a9a6e;
+  --ui-panel-fill: rgba(245, 240, 232, 0.98);
+  --ui-panel-fill-strong: rgba(212, 196, 168, 0.98);
+  --ui-panel-line: #c49a6e;
+  --ui-panel-line-soft: #a89888;
+  --ui-button-fill: #d4c4a8;
+  --ui-button-fill-hover: #e6d7c0;
+  --ui-button-text: #2f3e46;
+  --ui-overlay-scrim: rgba(47, 62, 70, 0.32);
+  --ui-chip-fill: rgba(245, 240, 232, 0.94);
+  --ui-chip-line: #c49a6e;
 }

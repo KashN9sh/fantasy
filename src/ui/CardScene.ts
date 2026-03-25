@@ -19,10 +19,12 @@ export function createCardSceneController(root: HTMLElement): CardSceneControlle
     scene = document.createElement("div");
     scene.className = "card-scene";
     scene.innerHTML = `
-      <h3 class="card-scene-title">Что ты протянешь тревоге?</h3>
-      <p class="card-scene-sub">Выбери одну карту. Тихие вещи подходят лучше громких.</p>
-      <div class="card-hand" role="list"></div>
-      <div class="card-outcome" hidden></div>
+      <div class="card-scene-shell pixel-panel pixel-panel--strong pixel-stack">
+        <h3 class="card-scene-title">Что ты протянешь тревоге?</h3>
+        <p class="card-scene-sub">Выбери одну карту. Тихие вещи подходят лучше громких.</p>
+        <div class="card-hand" role="list"></div>
+        <div class="card-outcome" hidden></div>
+      </div>
     `;
 
     const hand = scene.querySelector(".card-hand");

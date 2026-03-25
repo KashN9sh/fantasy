@@ -243,7 +243,7 @@ function openDeckViewUi() {
   deckViewAccumMs = 0;
   const ids = buildBattleDeckIds(state);
   deckViewWrap = document.createElement("div");
-  deckViewWrap.className = "deck-view-overlay";
+  deckViewWrap.className = "deck-view-overlay pixel-overlay pixel-overlay--center";
   const items = ids
     .map((id) => {
       const d = getBattleCardDef(id);
@@ -251,10 +251,10 @@ function openDeckViewUi() {
     })
     .join("");
   deckViewWrap.innerHTML = `
-    <div class="deck-view-box">
+    <div class="deck-view-box pixel-panel pixel-panel--strong pixel-stack">
       <h3 class="deck-view-title">Колода</h3>
       <p class="deck-view-hint">Удерживай открытым 20 с — триггер «Сравнение». I или Esc — закрыть.</p>
-      <ul class="deck-view-list">${items}</ul>
+      <ul class="deck-view-list pixel-list">${items}</ul>
     </div>
   `;
   rootEl.appendChild(deckViewWrap);
@@ -282,10 +282,12 @@ function showCredits() {
   const wrap = document.createElement("div");
   wrap.className = "end-screen";
   wrap.innerHTML = `
-    <h2>Тихая тропа</h2>
-    <p>Сценарий: часть 9 «Корень» и финал по [FINALE.md]. Спасибо за игру.</p>
-    <p class="credits-meta">Колода и вероятности — DECK.md / DECK_PROBABILITIES.md</p>
-    <button type="button" class="card-close">Вернуться</button>
+    <div class="end-screen-box pixel-panel pixel-panel--strong pixel-stack">
+      <h2>Тихая тропа</h2>
+      <p>Сценарий: часть 9 «Корень» и финал по [FINALE.md]. Спасибо за игру.</p>
+      <p class="credits-meta">Колода и вероятности — DECK.md / DECK_PROBABILITIES.md</p>
+      <button type="button" class="card-close pixel-button pixel-button--accent">Вернуться</button>
+    </div>
   `;
   wrap.querySelector("button")?.addEventListener("click", () => {
     wrap.remove();
@@ -549,9 +551,11 @@ function showEndScreen() {
   const wrap = document.createElement("div");
   wrap.className = "end-screen";
   wrap.innerHTML = `
-    <h2>Тихая тропа</h2>
-    <p>Маленькая история подошла к концу. Лес остаётся здесь — как и обещание вернуться к простым вещам: свету, чаю и шагу по дороге.</p>
-    <button type="button" class="card-close">Идти дальше</button>
+    <div class="end-screen-box pixel-panel pixel-panel--strong pixel-stack">
+      <h2>Тихая тропа</h2>
+      <p>Маленькая история подошла к концу. Лес остаётся здесь — как и обещание вернуться к простым вещам: свету, чаю и шагу по дороге.</p>
+      <button type="button" class="card-close pixel-button pixel-button--accent">Идти дальше</button>
+    </div>
   `;
   wrap.querySelector("button")?.addEventListener("click", () => {
     wrap.remove();

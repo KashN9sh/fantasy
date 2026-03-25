@@ -16,7 +16,7 @@ export function createIntroOverlay(root: HTMLElement): IntroOverlayApi {
     const s = screensRef[index];
     if (!s) return;
     wrap.innerHTML = `
-      <div class="intro-box">
+      <div class="intro-box pixel-panel pixel-panel--strong pixel-stack">
         <p class="intro-text">${escapeHtml(s.text)}</p>
         <p class="intro-hint">Enter, Пробел или клик — дальше</p>
       </div>
@@ -56,7 +56,7 @@ export function createIntroOverlay(root: HTMLElement): IntroOverlayApi {
     onDoneRef = onDone;
     index = 0;
     wrap = document.createElement("div");
-    wrap.className = "intro-overlay";
+    wrap.className = "intro-overlay pixel-overlay pixel-overlay--center";
     root.appendChild(wrap);
     wrap.addEventListener("click", () => advance());
     window.addEventListener("keydown", onKey);

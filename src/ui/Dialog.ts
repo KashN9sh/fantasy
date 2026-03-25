@@ -94,11 +94,11 @@ export function createDialogController(root: HTMLElement): DialogController {
     extraFnsRef = extras ?? {};
     index = 0;
     wrap = document.createElement("div");
-    wrap.className = "dialog-overlay";
+    wrap.className = "dialog-overlay pixel-overlay pixel-overlay--bottom";
     wrap.dataset.exSilence = extras?.silence ? "1" : "0";
     wrap.dataset.exInterrupt = extras?.interrupt ? "1" : "0";
     const box = document.createElement("div");
-    box.className = "dialog-box";
+    box.className = "dialog-box pixel-panel pixel-panel--strong pixel-stack";
     box.tabIndex = 0;
     wrap.appendChild(box);
     root.appendChild(wrap);

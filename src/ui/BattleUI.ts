@@ -77,7 +77,7 @@ export function createBattleUI(
       .join(" · ");
 
     wrap.innerHTML = `
-      <div class="battle-layout ${lowHp ? "battle-layout--lowhp" : ""}">
+      <div class="battle-layout battle-layout--retro ${lowHp ? "battle-layout--lowhp" : ""}">
         <header class="battle-header">
           <div class="battle-head-block">
             <span class="battle-title">Спокойствие</span>
@@ -91,7 +91,7 @@ export function createBattleUI(
         </header>
         <div class="battle-intent">Намерение (${state.enemy.intentTier}): ${state.enemy.intentDamage} урона</div>
         <div class="battle-enemy-hero ${targeting || minionPick ? "targetable" : ""}" data-target="enemyHero">
-          <div class="enemy-silhouette ${enemyLow ? "enemy-silhouette--cracked" : ""}" aria-hidden="true"></div>
+          <div class="enemy-silhouette ${enemyLow ? "enemy-silhouette--cracked" : ""}" aria-hidden="true">▓▒░▓▒░</div>
           <div class="hero-name">${escapeHtml(state.enemy.name)}</div>
           <div class="hero-level">Уровень: ${state.enemy.level}</div>
           <div class="hero-stats">${state.enemy.resistance}/${state.enemy.maxResistance} устойчивости
@@ -142,32 +142,11 @@ export function createBattleUI(
               if (!d) return "";
               const playable = canPlayCard(state, i);
               const frame = getBattleCardFrame(d);
-              const starsStr = "★".repeat(frame.stars);
-              const attrMark: Record<typeof frame.attr, { sym: string; label: string }> = {
-                dark: { sym: "D", label: "Тьма" },
-                fire: { sym: "F", label: "Огонь" },
-                earth: { sym: "G", label: "Земля" },
-                light: { sym: "L", label: "Свет" },
-                water: { sym: "W", label: "Вода" },
-              };
-              const am = attrMark[frame.attr];
-              return `<button type="button" class="battle-card ygo-card ${playable ? "" : "disabled"} ${`ygo-attr--${frame.attr}`}" data-hand="${i}" ${playable ? "" : "disabled"}>
-                <span class="ygo-cost-badge" aria-label="стоимость">${d.cost}</span>
-                <div class="ygo-card-inner">
-                  <header class="ygo-header">
-                    <span class="ygo-name">${escapeHtml(d.name.toUpperCase())}</span>
-                    <span class="ygo-attr-icon" title="${escapeHtml(am.label)}" aria-label="${escapeHtml(am.label)}">${am.sym}</span>
-                  </header>
-                  <div class="ygo-stars" aria-hidden="true">${starsStr}</div>
-                  <div class="ygo-art">${d.icon}</div>
-                  <div class="ygo-textbox">
-                    <p class="ygo-desc">${escapeHtml(d.desc)}</p>
-                    <div class="ygo-stats">
-                      <span class="ygo-stat-atk">ATK / ${frame.atk}</span>
-                      <span class="ygo-stat-def">DEF / ${frame.def}</span>
-                    </div>
-                  </div>
-                </div>
+              return `<button type="button" class="battle-card retro-card ${playable ? "" : "disabled"}" data-hand="${i}" ${playable ? "" : "disabled"}>
+                <div class="retro-card-name">${escapeHtml(d.name)}</div>
+                <div class="retro-card-icon">${d.icon}</div>
+                <div class="retro-card-desc">${escapeHtml(d.desc)}</div>
+                <div class="retro-card-stats">ATK ${frame.atk} · DEF ${frame.def} · C ${d.cost}</div>
               </button>`;
             })
             .join("")}
@@ -183,7 +162,7 @@ export function createBattleUI(
               : `<span class="pending-hint">Колода: ${state.drawPile.length} · Сброс: ${state.discardPile.length}</span>`
           }
           <span class="deck-preview" title="${escapeHtml(deckPreview || "Колода пуста")}">Превью колоды</span>
-          <button type="button" class="battle-endturn" ${state.phase === "player" ? "" : "disabled"}>Конец хода</button>
+          <button type="button" class="battle-endturn pixel-button pixel-button--accent" ${state.phase === "player" ? "" : "disabled"}>Конец хода</button>
         </footer>
       </div>
       ${
@@ -196,7 +175,7 @@ export function createBattleUI(
                 : "Ты подавил(а). Но это вернётся."
               : "Спокойствие упало до нуля. Что-то потеряно."
           }</p>
-          <button type="button" class="card-close battle-exit">Закрыть</button>
+          <button type="button" class="card-close pixel-button pixel-button--accent battle-exit">Закрыть</button>
         </div>`
           : ""
       }

@@ -24,15 +24,15 @@ export function createStoryChoice(root: HTMLElement): StoryChoiceApi {
   ) {
     unmount();
     wrap = document.createElement("div");
-    wrap.className = "choice-overlay";
+    wrap.className = "choice-overlay pixel-overlay pixel-overlay--center";
     wrap.innerHTML = `
-      <div class="choice-box">
+      <div class="choice-box pixel-panel pixel-panel--strong pixel-stack">
         <p class="choice-prompt">${escapeHtml(prompt)}</p>
         <div class="choice-buttons">
           ${options
             .map(
               (o) =>
-                `<button type="button" class="choice-btn" data-opt-id="${escapeHtml(o.id)}">${escapeHtml(o.label)}</button>`,
+                `<button type="button" class="choice-btn pixel-button" data-opt-id="${escapeHtml(o.id)}">${escapeHtml(o.label)}</button>`,
             )
             .join("")}
         </div>
