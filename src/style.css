@@ -488,6 +488,95 @@ select {
   padding-bottom: 0.25rem;
 }
 
+.battle-scene {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr) minmax(0, 1fr);
+  gap: var(--ui-space-4);
+  align-items: stretch;
+  min-height: 18rem;
+}
+
+.battle-stage {
+  display: grid;
+  gap: var(--ui-space-2);
+  align-content: start;
+  padding: var(--ui-space-3);
+  border: var(--ui-border-regular) solid var(--ui-panel-line);
+  background: var(--ui-panel-fill);
+  box-shadow: var(--ui-shadow-pixel);
+}
+
+.battle-stage--enemy {
+  justify-items: start;
+}
+
+.battle-stage--player {
+  justify-items: end;
+  text-align: right;
+}
+
+.battle-stage-label {
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.battle-stage-figure {
+  width: 100%;
+  min-height: 12rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--ui-border-regular) solid var(--ui-panel-line-soft);
+  background:
+    radial-gradient(circle at 50% 40%, rgba(201, 182, 212, 0.22), transparent 42%),
+    linear-gradient(180deg, rgba(47, 62, 70, 0.4), rgba(17, 22, 26, 0.75));
+  color: rgba(255, 252, 248, 0.92);
+  font-family: var(--ui-font-display);
+  font-size: 1.2rem;
+  letter-spacing: 0.35rem;
+}
+
+.battle-stage-figure--player {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(124, 154, 122, 0.22), transparent 42%),
+    linear-gradient(180deg, rgba(47, 62, 70, 0.4), rgba(17, 22, 26, 0.75));
+}
+
+.battle-stage-figure--low {
+  animation: lowhpPulse 0.8s steps(2, end) infinite;
+}
+
+.battle-stage-figure--adapted {
+  border-color: var(--danger-soft);
+  box-shadow: inset 0 0 0 var(--ui-border-thin) var(--danger-soft);
+}
+
+.battle-stage-state {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.battle-scene-center {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3);
+}
+
+.battle-scene-pressure {
+  color: var(--accent);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.battle-scene-quote {
+  color: var(--text);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
 .battle-head-block {
   display: inline-flex;
   align-items: center;
@@ -523,6 +612,31 @@ select {
 
 .battle-intent {
   color: var(--muted);
+  display: grid;
+  gap: var(--ui-space-1);
+}
+
+.battle-intent-line {
+  color: var(--muted);
+}
+
+.battle-intent-quote {
+  color: var(--text);
+  font-size: 0.68rem;
+}
+
+.battle-intent-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+
+.battle-intent-effect {
+  padding: var(--ui-space-1) var(--ui-space-2);
+  border: var(--ui-border-thin) solid var(--ui-chip-line);
+  background: var(--ui-chip-fill);
+  color: var(--text);
+  font-size: 0.62rem;
 }
 
 .battle-adaptation {
@@ -540,6 +654,243 @@ select {
 }
 
 .battle-adaptation-text {
+  color: var(--text);
+  font-size: 0.65rem;
+}
+
+.battle-commandbar {
+  margin-top: auto;
+  border-top: var(--ui-border-regular) solid var(--ui-panel-line-soft);
+  padding-top: var(--ui-space-3);
+}
+
+.battle-command-panel,
+.battle-sequence-panel {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3);
+  border: var(--ui-border-regular) solid var(--ui-panel-line);
+  background: var(--ui-panel-fill);
+  box-shadow: var(--ui-shadow-pixel);
+}
+
+.battle-command-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ui-space-2);
+}
+
+.battle-command-tab {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--ui-space-2);
+  align-items: center;
+  padding: var(--ui-space-2);
+  border: var(--ui-border-regular) solid var(--ui-panel-line-soft);
+  background: var(--ui-panel-fill-strong);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.battle-command-tab--active {
+  border-color: var(--accent);
+  background: var(--ui-panel-fill);
+}
+
+.battle-command-tab.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.battle-command-copy {
+  display: grid;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-2) 0;
+}
+
+.battle-command-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--ui-space-3);
+}
+
+.battle-command {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--ui-space-3);
+  align-items: start;
+  padding: var(--ui-space-3);
+  border: var(--ui-border-regular) solid var(--ui-panel-line);
+  background: var(--ui-panel-fill-strong);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--ui-shadow-pixel);
+}
+
+.battle-command:hover:not(.disabled),
+.battle-command-tab:hover:not(.disabled) {
+  transform: translate(-3px, -3px);
+}
+
+.battle-command.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.battle-command--acceptance,
+.battle-command--integration,
+.battle-command--npc,
+.battle-command--rare {
+  border-color: #7c9a7a;
+}
+
+.battle-command--absorption {
+  border-color: #b76e6e;
+}
+
+.battle-command--withdrawal {
+  border-color: #c49a6e;
+}
+
+.battle-command--steady {
+  border-color: #8ab3b3;
+}
+
+.battle-command-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ui-space-3);
+}
+
+.battle-sequence-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  align-items: center;
+}
+
+.battle-sequence-speaker {
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.battle-sequence-tone {
+  color: var(--muted);
+}
+
+.battle-sequence-line {
+  color: var(--text);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.battle-sequence-summary {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.battle-sequence-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+
+.battle-sequence-effect {
+  padding: var(--ui-space-1) var(--ui-space-2);
+  border: var(--ui-border-thin) solid var(--ui-chip-line);
+  background: var(--ui-chip-fill);
+  color: var(--text);
+  font-size: 0.62rem;
+}
+
+.battle-continue,
+.battle-endturn {
+  justify-self: end;
+}
+
+.battle-dialogue {
+  display: grid;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+  border: var(--ui-border-regular) solid var(--ui-panel-line);
+  background: var(--ui-panel-fill);
+  box-shadow: var(--ui-shadow-pixel);
+}
+
+.battle-dialogue-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  align-items: center;
+}
+
+.battle-dialogue-speaker {
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.battle-dialogue-tone {
+  color: var(--muted);
+}
+
+.battle-dialogue-quote {
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.battle-dialogue-summary {
+  color: var(--muted);
+  font-size: 0.65rem;
+}
+
+.battle-dialogue-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+
+.battle-dialogue-effect {
+  padding: var(--ui-space-1) var(--ui-space-2);
+  border: var(--ui-border-thin) solid var(--ui-chip-line);
+  background: var(--ui-chip-fill);
+  color: var(--text);
+  font-size: 0.62rem;
+}
+
+.battle-dialogue-adaptation {
+  display: grid;
+  gap: var(--ui-space-1);
+  padding-top: var(--ui-space-2);
+  border-top: var(--ui-border-thin) solid var(--danger-soft);
+}
+
+.battle-dialogue-adaptation-label {
+  color: var(--danger);
+  text-transform: uppercase;
+}
+
+.battle-dialogue-adaptation-text {
+  color: var(--text);
+  font-size: 0.65rem;
+}
+
+.battle-dialogue-status {
+  display: grid;
+  gap: var(--ui-space-1);
+  padding-top: var(--ui-space-2);
+  border-top: var(--ui-border-thin) solid var(--ui-panel-line-soft);
+}
+
+.battle-dialogue-status-label {
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.battle-dialogue-status-text {
   color: var(--text);
   font-size: 0.65rem;
 }
@@ -657,18 +1008,6 @@ select {
 
 .badge.poison {
   color: #7bc97b;
-}
-
-.battle-log {
-  background: rgba(47, 62, 70, 0.18);
-  border: var(--ui-border-regular) solid var(--ui-panel-line-soft);
-  border-radius: 0;
-  padding: 0.25rem 0.4rem;
-  max-height: 4.5rem;
-  overflow-y: auto;
-  font-size: 0.65rem;
-  color: var(--text);
-  line-height: 1.35;
 }
 
 .battle-echoes {

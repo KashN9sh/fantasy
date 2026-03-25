@@ -1,4 +1,12 @@
-import { canSelectStance, canUseResponse, createBattle, endPlayerTurn, selectStance, useResponse } from "../combat/engine";
+import {
+  advanceEnemySequence,
+  canSelectStance,
+  canUseResponse,
+  createBattle,
+  endPlayerTurn,
+  selectStance,
+  useResponse,
+} from "../combat/engine";
 import type { CreateBattleOptions } from "../combat/engine";
 import { getBattleResponseDef } from "../combat/responseDefs";
 import { getBattleStanceDef, listAvailableStanceIds, listResponsesForStance } from "../combat/stanceDefs";
@@ -15,6 +23,25 @@ function escapeHtml(s: string): string {
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+}
+
+function debuffLabel(id: string): string {
+  switch (id) {
+    case "panic":
+      return "Паника";
+    case "guilt":
+      return "Вина";
+    case "shame":
+      return "Стыд";
+    case "fatigue":
+      return "Усталость";
+    case "numbness":
+      return "Онемение";
+    case "regret":
+      return "Сожаление";
+    default:
+      return id;
+  }
 }
 
 export function createBattleUI(
@@ -64,15 +91,23 @@ export function createBattleUI(
           : "Враг читает ритм";
     const debuffs = Object.entries(state.debuffs)
       .filter(([, turns]) => turns > 0)
-      .map(([id, turns]) => `${id}:${turns}`)
+      .map(([id, turns]) => `${debuffLabel(id)} ${turns}`)
       .join(" · ");
+    const dialogueStatus = debuffs || "Пока без явных эффектов.";
+    const playerLow = lowHp ? "battle-stage-figure--low" : "";
+    const enemyAdapted = state.enemyAdaptation.currentHint ? "battle-stage-figure--adapted" : "";
+    const sequenceStep =
+      state.presentation.mode === "enemy_sequence"
+        ? state.presentation.steps[state.presentation.stepIndex] ?? null
+        : null;
+    const isEnemySequence = state.phase === "enemy" && state.presentation.mode === "enemy_sequence";
     const stanceIds = listAvailableStanceIds(state.availableResponseIds);
     const stances = stanceIds
       .map((id) => {
         const def = getBattleStanceDef(id);
         const selectable = canSelectStance(state, id);
         const active = state.currentStanceId === id;
-        return `<button type="button" class="battle-stance ${active ? "battle-stance--active" : ""} ${selectable || active ? "" : "disabled"}" data-stance="${id}" ${selectable || active ? "" : "disabled"}>
+        return `<button type="button" class="battle-command-tab ${active ? "battle-command-tab--active" : ""} ${selectable || active ? "" : "disabled"}" data-stance="${id}" ${selectable || active ? "" : "disabled"}>
           <span class="battle-stance-icon">${escapeHtml(def.icon)}</span>
           <span class="battle-stance-copy">
             <span class="battle-stance-name">${escapeHtml(def.name)}</span>
@@ -89,7 +124,7 @@ export function createBattleUI(
       .map((id) => {
         const def = getBattleResponseDef(id);
         const usable = canUseResponse(state, id);
-        return `<button type="button" class="battle-response battle-response--${def.style} ${usable ? "" : "disabled"}" data-response="${id}" ${usable ? "" : "disabled"}>
+        return `<button type="button" class="battle-command battle-command--${def.style} ${usable ? "" : "disabled"}" data-response="${id}" ${usable ? "" : "disabled"}>
           <div class="battle-response-icon">${escapeHtml(def.icon)}</div>
           <div class="battle-response-copy">
             <div class="battle-response-name">${escapeHtml(def.name)}</div>
@@ -113,56 +148,94 @@ export function createBattleUI(
           <div class="battle-head-block">Ход: ${state.turnNumber}</div>
           <div class="battle-head-block">Сдвиг: ${shift.acceptance >= shift.absorption ? "◉◉○" : "○◉◉"}</div>
         </header>
-        <div class="battle-intent">Намерение (${state.enemy.intentTier}): ${escapeHtml(state.enemy.intentText)}${state.enemy.intentDamage > 0 ? ` · ${state.enemy.intentDamage} урона` : ""}</div>
-        ${
-          state.enemyAdaptation.currentHint
-            ? `<div class="battle-adaptation">
-                <span class="battle-adaptation-label">${escapeHtml(adaptationLabel)}</span>
-                <span class="battle-adaptation-text">${escapeHtml(state.enemyAdaptation.currentHint)}</span>
-              </div>`
-            : ""
-        }
-        <div class="battle-enemy-hero">
-          <div class="enemy-silhouette ${enemyLow ? "enemy-silhouette--cracked" : ""}" aria-hidden="true">▓▒░▓▒░</div>
-          <div class="hero-name">${escapeHtml(state.enemy.name)}</div>
-          <div class="hero-level">Уровень: ${state.enemy.level}</div>
-          <div class="hero-stats">${state.enemy.resistance}/${state.enemy.maxResistance} устойчивости${state.enemy.block ? ` · ${state.enemy.block} блок` : ""}</div>
-        </div>
-        ${
-          state.enemyEchoes.length > 0
-            ? `<div class="battle-echoes">${state.enemyEchoes
-                .map(
-                  (echo) =>
-                    `<div class="battle-echo"><span>${escapeHtml(echo.name)}</span><span>${echo.intentDamage} урона</span></div>`,
-                )
-                .join("")}</div>`
-            : ""
-        }
-        <div class="battle-player-bar">
-          <div class="hero-stats">${state.player.calm}/${state.player.maxCalm} спокойствия · ${state.player.block} блок · Понимание ${state.understanding}</div>
-          ${currentStance ? `<div class="hero-level">Текущая стойка: ${escapeHtml(currentStance.name)} · ${escapeHtml(currentStance.title)}</div>` : ""}
-          ${debuffs ? `<div class="hero-level">Эффекты: ${escapeHtml(debuffs)}</div>` : ""}
-        </div>
-        <div class="battle-log">${state.log.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}</div>
-        <div class="battle-stance-grid">${stances}</div>
-        ${
-          currentStance
-            ? `<div class="battle-stance-panel">
-                <div class="battle-stance-panel-title">${escapeHtml(currentStance.name)} · ${escapeHtml(currentStance.title)}</div>
-                <div class="battle-stance-panel-desc">${escapeHtml(currentStance.desc)}</div>
-              </div>`
-            : ""
-        }
-        <div class="battle-response-grid">${responses}</div>
-        <footer class="battle-footer">
-          <span class="pending-hint">${
-            state.turnUsedResponse
-              ? "Ответ выбран. Можно завершить ход."
-              : currentStance
-                ? "Стойка выбрана. Теперь выбери приём внутри неё."
-                : "Сначала выбери стойку, в которой встретишь это давление."
-          }</span>
-          <button type="button" class="battle-endturn pixel-button pixel-button--accent" ${state.phase === "player" ? "" : "disabled"}>Конец хода</button>
+        <section class="battle-scene">
+          <div class="battle-stage battle-stage--enemy">
+            <div class="battle-stage-label">Противник</div>
+            <div class="battle-stage-figure enemy-silhouette ${enemyLow ? "enemy-silhouette--cracked" : ""} ${enemyAdapted}" aria-hidden="true">▓▒░▓▒░</div>
+            <div class="hero-name">${escapeHtml(state.enemy.name)}</div>
+            <div class="hero-level">Уровень ${state.enemy.level}</div>
+            <div class="hero-stats">${state.enemy.resistance}/${state.enemy.maxResistance} устойчивости${state.enemy.block ? ` · ${state.enemy.block} блок` : ""}</div>
+            <div class="battle-stage-state">Состояние: ${enemyLow ? "трещины" : "держит форму"}${state.enemyAdaptation.currentHint ? " · адаптация" : ""}</div>
+          </div>
+          <div class="battle-scene-center">
+            <div class="battle-intent-line">Намерение (${state.enemy.intentTier})</div>
+            <div class="battle-scene-pressure">${escapeHtml(state.enemy.intentText)}</div>
+            <div class="battle-scene-quote">«${escapeHtml(sequenceStep?.line || state.enemy.intentQuote || state.enemy.intentText)}»</div>
+            ${
+              state.enemyAdaptation.currentHint
+                ? `<div class="battle-adaptation">
+                    <span class="battle-adaptation-label">${escapeHtml(adaptationLabel)}</span>
+                    <span class="battle-adaptation-text">${escapeHtml(state.enemyAdaptation.currentHint)}</span>
+                  </div>`
+                : ""
+            }
+            ${
+              state.enemyEchoes.length > 0
+                ? `<div class="battle-echoes">${state.enemyEchoes
+                    .map(
+                      (echo) =>
+                        `<div class="battle-echo"><span>${escapeHtml(echo.name)}</span><span>${echo.intentDamage} урона</span></div>`,
+                    )
+                    .join("")}</div>`
+                : ""
+            }
+          </div>
+          <div class="battle-stage battle-stage--player">
+            <div class="battle-stage-label">Игрок</div>
+            <div class="battle-stage-figure battle-stage-figure--player ${playerLow}" aria-hidden="true">░█░█░</div>
+            <div class="hero-name">Ты</div>
+            <div class="hero-level">${currentStance ? `Стойка: ${escapeHtml(currentStance.name)}` : "Стойка не выбрана"}</div>
+            <div class="hero-stats">${state.player.calm}/${state.player.maxCalm} спокойствия · ${state.player.block} блок · Понимание ${state.understanding}</div>
+            <div class="battle-stage-state">Состояние: ${escapeHtml(dialogueStatus)}</div>
+          </div>
+        </section>
+        <footer class="battle-commandbar ${isEnemySequence ? "battle-commandbar--sequence" : ""}">
+          ${
+            isEnemySequence
+              ? `<section class="battle-sequence-panel" aria-label="Ход врага">
+                  <div class="battle-sequence-header">
+                    <span class="battle-sequence-speaker">${escapeHtml(sequenceStep?.speaker || state.enemy.name)}</span>
+                    <span class="battle-sequence-tone">${escapeHtml(state.enemy.intentTier)}</span>
+                  </div>
+                  <div class="battle-sequence-line">«${escapeHtml(sequenceStep?.line || state.enemy.intentQuote || state.enemy.intentText)}»</div>
+                  <div class="battle-sequence-summary">${escapeHtml(sequenceStep?.summary || state.enemy.intentText)}</div>
+                  ${
+                    sequenceStep && sequenceStep.effectLabels.length > 0
+                      ? `<div class="battle-sequence-effects">
+                          ${sequenceStep.effectLabels
+                            .map((effect) => `<span class="battle-sequence-effect">${escapeHtml(effect)}</span>`)
+                            .join("")}
+                        </div>`
+                      : ""
+                  }
+                  <button type="button" class="battle-continue pixel-button pixel-button--accent">Продолжить</button>
+                </section>`
+              : `<section class="battle-command-panel" aria-label="Команды игрока">
+                  <div class="battle-command-tabs">${stances}</div>
+                  ${
+                    currentStance
+                      ? `<div class="battle-command-copy">
+                          <div class="battle-stance-panel-title">${escapeHtml(currentStance.name)} · ${escapeHtml(currentStance.title)}</div>
+                          <div class="battle-stance-panel-desc">${escapeHtml(currentStance.desc)}</div>
+                        </div>`
+                      : `<div class="battle-command-copy">
+                          <div class="battle-stance-panel-title">Выбор стойки</div>
+                          <div class="battle-stance-panel-desc">Сначала выбери, в каком состоянии встретишь это давление.</div>
+                        </div>`
+                  }
+                  <div class="battle-command-grid">${responses}</div>
+                  <div class="battle-command-footer">
+                    <span class="pending-hint">${
+                      state.turnUsedResponse
+                        ? "Ответ выбран. Передай ход врагу."
+                        : currentStance
+                          ? "Выбери приём внутри выбранной стойки."
+                          : "Выбери стойку в нижней панели."
+                    }</span>
+                    <button type="button" class="battle-endturn pixel-button pixel-button--accent" ${state.phase === "player" ? "" : "disabled"}>Конец хода</button>
+                  </div>
+                </section>`
+          }
         </footer>
       </div>
       ${
@@ -241,6 +314,14 @@ export function createBattleUI(
         opts.onEvent?.("turn_end");
         opts.markTutorialStepDone?.();
       }
+      render();
+    });
+
+    wrap.querySelector(".battle-continue")?.addEventListener("click", () => {
+      const st = opts.getBattle();
+      if (!st) return;
+      const err = advanceEnemySequence(st);
+      if (err) errToast(err);
       render();
     });
 

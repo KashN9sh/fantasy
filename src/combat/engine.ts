@@ -5,6 +5,7 @@ import { listAvailableStanceIds, listResponsesForStance } from "./stanceDefs";
 import type {
   BattleEnemyDef,
   EnemyAdaptationRule,
+  EnemySequenceStep,
   BattleResponseId,
   BattleResponseStyle,
   BattleState,
@@ -26,6 +27,13 @@ export interface CreateBattleOptions {
 function log(state: BattleState, msg: string): void {
   state.log.push(msg);
   if (state.log.length > 14) state.log.shift();
+}
+
+function clearPresentation(state: BattleState): void {
+  state.presentation.mode = "player_command";
+  state.presentation.steps = [];
+  state.presentation.stepIndex = 0;
+  state.presentation.queuedNextIntent = null;
 }
 
 function tickDebuffsStartTurn(state: BattleState): void {
@@ -79,7 +87,41 @@ function addBlock(state: BattleState, amount: number): void {
   log(state, `Блок +${amount}.`);
 }
 
-function rollEnemyIntent(enemyId: string): { dmg: number; tier: EnemyIntentTier; text: string } {
+function summarizeIntent(enemyId: string, tier: EnemyIntentTier): string {
+  switch (enemyId) {
+    case "hum_unnamed":
+      return tier === "heavy" ? "шум давит со всех сторон" : "шум сгущается";
+    case "voice_must":
+      return tier === "heavy" ? "обвинение и ускорение" : "давление через вину";
+    case "compare_others":
+      return tier === "heavy" ? "чужая мера давит сильнее" : "сравнение с чужим шагом";
+    case "shadow_past_decision":
+      return tier === "heavy" ? "прошлое возвращается целиком" : "старое решение тянет назад";
+    case "insomnia":
+      return tier === "heavy" ? "мысли не дают телу уснуть" : "ночная петля раскручивается";
+    case "expectation_judgment":
+      return tier === "heavy" ? "чужой взгляд сжимает сильнее" : "стыд и взгляд со стороны";
+    case "root_of_anxiety":
+      return tier === "heavy" ? "корень тревоги поднимается выше" : "давление поднимается изнутри";
+    default:
+      return tier === "heavy" ? "давление нарастает" : "давление подступает";
+  }
+}
+
+function pickIntentQuote(enemyId: string, tier: EnemyIntentTier): string {
+  const enemyDef = getEnemyBattleDef(enemyId);
+  const pool = enemyDef.intentLines[tier];
+  if (!pool || pool.length === 0) return "";
+  return pool[Math.floor(Math.random() * pool.length)] ?? pool[0] ?? "";
+}
+
+function rollEnemyIntent(enemyId: string): {
+  dmg: number;
+  tier: EnemyIntentTier;
+  text: string;
+  quote: string;
+  effects: string[];
+} {
   const preset = getEnemyBattleDef(enemyId);
   const attacks = preset.attacks;
   const total = attacks.reduce((sum, attack) => sum + attack.weight, 0);
@@ -89,32 +131,105 @@ function rollEnemyIntent(enemyId: string): { dmg: number; tier: EnemyIntentTier;
     if (r <= 0) {
       const span = attack.max - attack.min + 1;
       const dmg = attack.min + Math.floor(Math.random() * Math.max(1, span));
-      return { dmg, tier: attack.tier, text: buildIntentText(enemyId, attack.tier) };
+      return {
+        dmg,
+        tier: attack.tier,
+        text: summarizeIntent(enemyId, attack.tier),
+        quote: pickIntentQuote(enemyId, attack.tier),
+        effects: [...preset.intentEffects],
+      };
     }
   }
   const fallback = attacks[attacks.length - 1]!;
-  return { dmg: fallback.min, tier: fallback.tier, text: buildIntentText(enemyId, fallback.tier) };
+  return {
+    dmg: fallback.min,
+    tier: fallback.tier,
+    text: summarizeIntent(enemyId, fallback.tier),
+    quote: pickIntentQuote(enemyId, fallback.tier),
+    effects: [...preset.intentEffects],
+  };
 }
 
-function buildIntentText(enemyId: string, tier: EnemyIntentTier): string {
-  switch (enemyId) {
-    case "hum_unnamed":
-      return tier === "heavy" ? "гул давит в грудь" : "шум сгущается";
-    case "voice_must":
-      return tier === "heavy" ? "обвиняет и ускоряет" : "требует больше";
-    case "compare_others":
-      return tier === "heavy" ? "меряет тебя чужой высотой" : "сравнивает шаг";
-    case "shadow_past_decision":
-      return tier === "heavy" ? "возвращает прежнюю боль" : "тянет назад";
-    case "insomnia":
-      return tier === "heavy" ? "раскачивает мысли" : "не даёт уснуть";
-    case "expectation_judgment":
-      return tier === "heavy" ? "сжимает чужим взглядом" : "подталкивает под суд";
-    case "root_of_anxiety":
-      return tier === "heavy" ? "давит всем весом" : "поднимается изнутри";
-    default:
-      return tier === "heavy" ? "наступает" : "подступает";
+function queueEnemyTurn(state: BattleState): void {
+  const steps: EnemySequenceStep[] = [];
+
+  state.enemy.block = 0;
+
+  for (const echo of state.enemyEchoes) {
+    const effectLabels = echo.intentDamage > 0 ? [`${echo.intentDamage} урона`] : ["Давление без прямого урона"];
+    steps.push({
+      speaker: echo.name,
+      line: echo.intentText,
+      summary: "Эхо врезается раньше основного голоса.",
+      effectLabels,
+      actions: [
+        { kind: "damage_player", amount: echo.intentDamage },
+        { kind: "log", text: `${echo.name}: ${echo.intentText}.` },
+      ],
+    });
   }
+
+  let damage = state.enemy.intentDamage + Math.max(0, state.pressureLevel - 1);
+  if (state.currentStanceId === "steady") damage = Math.max(0, damage - 1);
+  if (state.currentStanceId === "withdrawal") damage = Math.max(0, damage - 1);
+  if (state.currentStanceId === "absorption") damage += 1;
+  if (state.battleEnemyId === "compare_others" && state.player.block > 0) damage += 1;
+
+  const actions: EnemySequenceStep["actions"] = [];
+  const effectLabels: string[] = [];
+
+  if (state.battleEnemyId === "voice_must") {
+    actions.push({ kind: "set_debuff", debuff: "guilt", turns: 2 });
+    effectLabels.push("Вина 2");
+    if (Math.random() < 0.35) {
+      actions.push({ kind: "set_debuff", debuff: "panic", turns: 1 });
+      effectLabels.push("Паника 1");
+    }
+  }
+  if (state.battleEnemyId === "shadow_past_decision") {
+    actions.push({ kind: "set_debuff", debuff: "regret", turns: 2 });
+    effectLabels.push("Сожаление 2");
+  }
+  if (state.battleEnemyId === "insomnia") {
+    actions.push({ kind: "set_debuff", debuff: "fatigue", turns: 2 });
+    effectLabels.push("Усталость 2");
+  }
+  if (state.battleEnemyId === "expectation_judgment") {
+    actions.push({ kind: "set_debuff", debuff: "shame", turns: 2 });
+    effectLabels.push("Стыд 2");
+  }
+  if (state.enemyAdaptation.blockIgnore > 0 && state.player.block > 0) {
+    effectLabels.push(`Игнорирует ${state.enemyAdaptation.blockIgnore} блока`);
+    actions.push({ kind: "log", text: `${state.enemy.name} находит щель в защите и частично проходит сквозь блок.` });
+  }
+  if (damage > 0) {
+    effectLabels.unshift(`${damage} урона`);
+    actions.push({ kind: "damage_player", amount: damage });
+    actions.push({ kind: "log", text: `${state.enemy.name}: ${state.enemy.intentQuote || state.enemy.intentText}.` });
+  } else {
+    effectLabels.push("Прямого удара нет");
+    actions.push({ kind: "log", text: `${state.enemy.name} тянется ближе, но прямого удара нет.` });
+  }
+
+  steps.push({
+    speaker: state.enemy.name,
+    line: state.enemy.intentQuote || state.enemy.intentText,
+    summary: state.enemy.intentText,
+    effectLabels,
+    actions,
+  });
+
+  state.presentation.mode = "enemy_sequence";
+  state.presentation.steps = steps;
+  state.presentation.stepIndex = 0;
+  const nextIntent = rollEnemyIntent(state.battleEnemyId ?? "hum_unnamed");
+  state.presentation.queuedNextIntent = {
+    damage: nextIntent.dmg,
+    tier: nextIntent.tier,
+    text: nextIntent.text,
+    quote: nextIntent.quote,
+    effects: nextIntent.effects,
+  };
 }
 
 function toDominantStyle(style: BattleResponseStyle): DominantBattleStyle {
@@ -223,6 +338,7 @@ function applyEnemyAdaptation(
 
   if (rule.intentText) {
     state.enemy.intentText = rule.intentText;
+    state.enemy.intentQuote = rule.intentText;
   }
 }
 
@@ -232,7 +348,7 @@ function pushEcho(enemyId: string, buffed: boolean): EnemyEcho {
     enemyId,
     name: `${preset.name} (эхо)`,
     intentDamage: Math.max(1, Math.floor(preset.intentDamage / 2)) + (buffed ? 2 : 0),
-    intentText: buildIntentText(enemyId, "light"),
+    intentText: summarizeIntent(enemyId, "light"),
     buffed,
   };
 }
@@ -301,6 +417,7 @@ function checkBattleEnd(state: BattleState): void {
 
 function beginPlayerTurn(state: BattleState): void {
   if (state.phase === "won" || state.phase === "lost" || state.phase === "abandoned") return;
+  clearPresentation(state);
   state.phase = "player";
   state.turnNumber += 1;
   state.turnUsedResponse = false;
@@ -324,60 +441,61 @@ function beginPlayerTurn(state: BattleState): void {
     state.skipNextPlayerTurn = false;
     log(state, "Ты не продолжаешь усилие и просто пережидаешь этот ход.");
     state.phase = "enemy";
-    enemyTurn(state);
+    queueEnemyTurn(state);
   }
 }
 
-function enemyTurn(state: BattleState): void {
-  if (state.phase !== "enemy") return;
-  log(state, `Ход ${state.enemy.name}.`);
-  state.enemy.block = 0;
+function finalizeEnemySequence(state: BattleState): void {
+  if (state.phase === "won" || state.phase === "lost" || state.phase === "abandoned") {
+    clearPresentation(state);
+    return;
+  }
+  const nextIntent = state.presentation.queuedNextIntent;
+  if (nextIntent) {
+    state.enemy.intentDamage = nextIntent.damage;
+    state.enemy.intentTier = nextIntent.tier;
+    state.enemy.intentText = nextIntent.text;
+    state.enemy.intentQuote = nextIntent.quote;
+    state.enemy.intentEffects = nextIntent.effects;
+  }
+  beginPlayerTurn(state);
+}
 
-  for (const echo of state.enemyEchoes) {
-    damagePlayer(state, echo.intentDamage);
-    log(state, `${echo.name}: ${echo.intentText}.`);
-    checkBattleEnd(state);
-    if (state.phase !== "enemy") return;
+export function advanceEnemySequence(state: BattleState): string | null {
+  if (state.phase !== "enemy" || state.presentation.mode !== "enemy_sequence") {
+    return "Сейчас не ход врага.";
+  }
+  const step = state.presentation.steps[state.presentation.stepIndex];
+  if (!step) {
+    finalizeEnemySequence(state);
+    return null;
   }
 
-  let damage = state.enemy.intentDamage + Math.max(0, state.pressureLevel - 1);
-  if (state.currentStanceId === "steady") {
-    damage = Math.max(0, damage - 1);
-  }
-  if (state.currentStanceId === "withdrawal") {
-    damage = Math.max(0, damage - 1);
-  }
-  if (state.currentStanceId === "absorption") {
-    damage += 1;
-  }
-
-  if (state.battleEnemyId === "compare_others" && state.player.block > 0) damage += 1;
-  if (state.battleEnemyId === "voice_must") {
-    state.debuffs.guilt = Math.max(state.debuffs.guilt, 2);
-    if (Math.random() < 0.35) state.debuffs.panic = Math.max(state.debuffs.panic, 1);
-  }
-  if (state.battleEnemyId === "shadow_past_decision") state.debuffs.regret = Math.max(state.debuffs.regret, 2);
-  if (state.battleEnemyId === "insomnia") state.debuffs.fatigue = Math.max(state.debuffs.fatigue, 2);
-  if (state.battleEnemyId === "expectation_judgment") state.debuffs.shame = Math.max(state.debuffs.shame, 2);
-
-  if (damage > 0) {
-    if (state.enemyAdaptation.blockIgnore > 0 && state.player.block > 0) {
-      log(state, `${state.enemy.name} находит щель в защите и частично проходит сквозь блок.`);
+  for (const action of step.actions) {
+    switch (action.kind) {
+      case "damage_player":
+        damagePlayer(state, action.amount);
+        break;
+      case "set_debuff":
+        state.debuffs[action.debuff] = Math.max(state.debuffs[action.debuff], action.turns);
+        break;
+      case "log":
+        log(state, action.text);
+        break;
     }
-    damagePlayer(state, damage);
-    log(state, `${state.enemy.name}: ${state.enemy.intentText}.`);
-  } else {
-    log(state, `${state.enemy.name} тянется ближе, но прямого удара нет.`);
   }
 
   checkBattleEnd(state);
-  if (state.phase !== "enemy") return;
+  state.presentation.stepIndex += 1;
 
-  const nextIntent = rollEnemyIntent(state.battleEnemyId ?? "hum_unnamed");
-  state.enemy.intentDamage = nextIntent.dmg;
-  state.enemy.intentTier = nextIntent.tier;
-  state.enemy.intentText = nextIntent.text;
-  beginPlayerTurn(state);
+  if (state.player.calm <= 0 || state.enemy.resistance <= 0) {
+    clearPresentation(state);
+    return null;
+  }
+  if (state.presentation.stepIndex >= state.presentation.steps.length) {
+    finalizeEnemySequence(state);
+  }
+  return null;
 }
 
 export function createBattle(opts: CreateBattleOptions = {}): BattleState {
@@ -409,6 +527,8 @@ export function createBattle(opts: CreateBattleOptions = {}): BattleState {
       intentDamage: intent.dmg,
       intentTier: intent.tier,
       intentText: intent.text,
+      intentQuote: intent.quote,
+      intentEffects: intent.effects,
     },
     enemyEchoes: [],
     debuffs: {
@@ -431,6 +551,12 @@ export function createBattle(opts: CreateBattleOptions = {}): BattleState {
     quietResponseStreak: 0,
     understandingChain: 0,
     lastResponseIds: [],
+    presentation: {
+      mode: "player_command",
+      steps: [],
+      stepIndex: 0,
+      queuedNextIntent: null,
+    },
     enemyAdaptation: {
       repeatedResponseId: null,
       repeatedResponseCount: 0,
@@ -664,7 +790,7 @@ export function endPlayerTurn(state: BattleState): string | null {
     log(state, "Ты не находишь ответа и просто пережидаешь ход.");
   }
   state.phase = "enemy";
-  enemyTurn(state);
+  queueEnemyTurn(state);
   return null;
 }
 

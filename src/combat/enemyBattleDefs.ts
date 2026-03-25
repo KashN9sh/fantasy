@@ -12,6 +12,12 @@ const ENEMY_BATTLE_DEFS: Record<string, BattleEnemyDef> = {
       { tier: "medium", weight: 30, min: 0, max: 0 },
       { tier: "heavy", weight: 20, min: 0, max: 0 },
     ],
+    intentLines: {
+      light: ["Шум просто остаётся рядом.", "Он опять здесь, на краю внимания."],
+      medium: ["Если прислушаться, он становится ближе.", "Тишина снова не держится."],
+      heavy: ["Шум заполняет всё пространство.", "Кажется, от него некуда деться."],
+    },
+    intentEffects: ["Проверяет, сорвёшься ли ты в нажим или бегство."],
     adaptationRules: [
       {
         trigger: "same_style",
@@ -38,6 +44,12 @@ const ENEMY_BATTLE_DEFS: Record<string, BattleEnemyDef> = {
       { tier: "medium", weight: 30, min: 3, max: 4 },
       { tier: "heavy", weight: 20, min: 4, max: 5 },
     ],
+    intentLines: {
+      light: ["Я уже видел этот страх.", "Ты снова узнаёшь меня слишком быстро."],
+      medium: ["Сейчас ты опять дрогнешь.", "Я подойду ближе, и ты сожмёшься."],
+      heavy: ["Ты не выдержишь, если я стану ближе.", "Смотри, как тело уже готово отступить."],
+    },
+    intentEffects: ["Прямое давление: пытается сбить спокойствие."],
     adaptationRules: [
       {
         trigger: "same_response",
@@ -60,6 +72,12 @@ const ENEMY_BATTLE_DEFS: Record<string, BattleEnemyDef> = {
       { tier: "medium", weight: 30, min: 3, max: 4 },
       { tier: "heavy", weight: 20, min: 4, max: 5 },
     ],
+    intentLines: {
+      light: ["Ты опять не справился.", "Этого всё ещё недостаточно."],
+      medium: ["А что подумают другие?", "Ты снова отстаёшь."],
+      heavy: ["Ты должен был сделать лучше.", "Почему ты не можешь нормально справиться?"],
+    },
+    intentEffects: ["Наложит вину.", "Иногда добавляет панику поверх вины."],
     adaptationRules: [
       {
         trigger: "same_style",
@@ -86,6 +104,12 @@ const ENEMY_BATTLE_DEFS: Record<string, BattleEnemyDef> = {
       { tier: "medium", weight: 30, min: 3, max: 4 },
       { tier: "heavy", weight: 20, min: 4, max: 5 },
     ],
+    intentLines: {
+      light: ["У них получилось, а у тебя?", "Ты опять смотришь не туда."],
+      medium: ["Посмотри, как далеко они ушли.", "Ты опять сравниваешь свой шаг с чужим."],
+      heavy: ["Ты отстаёшь от всех сразу.", "Чужая высота сейчас обрушится на тебя."],
+    },
+    intentEffects: ["Если ты уже в блоке, давление становится сильнее."],
     adaptationRules: [
       {
         trigger: "same_response",
@@ -120,6 +144,12 @@ const ENEMY_BATTLE_DEFS: Record<string, BattleEnemyDef> = {
       { tier: "medium", weight: 30, min: 4, max: 4 },
       { tier: "heavy", weight: 20, min: 5, max: 6 },
     ],
+    intentLines: {
+      light: ["Ты мог поступить иначе.", "Всё началось там, помнишь?"],
+      medium: ["Ты до сих пор несёшь то решение.", "Старый момент снова становится настоящим."],
+      heavy: ["Ты всё испортил ещё тогда.", "Сейчас ты снова проживёшь это место."],
+    },
+    intentEffects: ["Наложит сожаление и потянет назад."],
     adaptationRules: [
       {
         trigger: "same_response",
@@ -145,6 +175,12 @@ const ENEMY_BATTLE_DEFS: Record<string, BattleEnemyDef> = {
       { tier: "medium", weight: 30, min: 0, max: 0 },
       { tier: "heavy", weight: 20, min: 0, max: 0 },
     ],
+    intentLines: {
+      light: ["Просто полежи и подумай ещё чуть-чуть.", "Сейчас не время спать."],
+      medium: ["Давай ещё один круг мыслей.", "Если не решишь это сейчас, не уснёшь."],
+      heavy: ["Ты не заснёшь, пока не разберёшь всё до конца.", "Тело устало, но мысли только разгоняются."],
+    },
+    intentEffects: ["Наложит усталость.", "Особенно наказывает повторный нажим."],
     adaptationRules: [
       {
         trigger: "same_style",
@@ -181,6 +217,12 @@ const ENEMY_BATTLE_DEFS: Record<string, BattleEnemyDef> = {
       { tier: "medium", weight: 30, min: 4, max: 5 },
       { tier: "heavy", weight: 20, min: 5, max: 6 },
     ],
+    intentLines: {
+      light: ["На тебя смотрят.", "Не ошибись у них на глазах."],
+      medium: ["Все заметят, если ты сейчас дрогнешь.", "Ты должен выглядеть лучше, чем чувствуешь."],
+      heavy: ["Если ошибёшься сейчас, это запомнят.", "Чужой взгляд уже решает за тебя."],
+    },
+    intentEffects: ["Наложит стыд.", "Плохо переносит безопасное повторение одной защиты."],
     adaptationRules: [
       {
         trigger: "same_style",
@@ -207,6 +249,12 @@ const ENEMY_BATTLE_DEFS: Record<string, BattleEnemyDef> = {
       { tier: "medium", weight: 30, min: 5, max: 6 },
       { tier: "heavy", weight: 20, min: 6, max: 7 },
     ],
+    intentLines: {
+      light: ["Я уже внутри этого ритма.", "Ты чувствуешь меня раньше мысли."],
+      medium: ["Я поднимаюсь изнутри.", "Всё снова собирается вокруг меня."],
+      heavy: ["Сейчас я стану всем, что есть вокруг.", "Ты не обойдёшь меня одним привычным жестом."],
+    },
+    intentEffects: ["Сильное прямое давление.", "Питается повторяющимся ритмом ответа."],
     adaptationRules: [
       {
         trigger: "same_style",
@@ -232,6 +280,12 @@ const ENEMY_BATTLE_DEFS: Record<string, BattleEnemyDef> = {
       { tier: "medium", weight: 30, min: 3, max: 4 },
       { tier: "heavy", weight: 20, min: 4, max: 5 },
     ],
+    intentLines: {
+      light: ["Один голос ещё можно пережить. Нас уже больше.", "Каждый из нас подхватит следующую трещину."],
+      medium: ["Мы договорим это хором.", "Ты не успеешь ответить всем сразу."],
+      heavy: ["Сейчас на тебя обрушатся все голоса разом.", "Твоего привычного ответа нам уже мало."],
+    },
+    intentEffects: ["Несколько голосов давят одновременно.", "Эхо добавляют свой урон отдельно."],
     adaptationRules: [
       {
         trigger: "same_style",

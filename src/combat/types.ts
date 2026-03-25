@@ -120,6 +120,8 @@ export interface BattleEnemyDef {
   hp: number;
   intentDamage: number;
   attacks: EnemyAttackTier[];
+  intentLines: Record<EnemyIntentTier, string[]>;
+  intentEffects: string[];
   adaptationRules: EnemyAdaptationRule[];
 }
 
@@ -132,6 +134,34 @@ export interface EnemyAdaptationState {
   currentTrigger: EnemyAdaptationTrigger | null;
   intentBonus: number;
   blockIgnore: number;
+}
+
+export interface QueuedEnemyIntent {
+  damage: number;
+  tier: EnemyIntentTier;
+  text: string;
+  quote: string;
+  effects: string[];
+}
+
+export type EnemySequenceAction =
+  | { kind: "damage_player"; amount: number }
+  | { kind: "set_debuff"; debuff: BattleDebuffId; turns: number }
+  | { kind: "log"; text: string };
+
+export interface EnemySequenceStep {
+  speaker: string;
+  line: string;
+  summary: string;
+  effectLabels: string[];
+  actions: EnemySequenceAction[];
+}
+
+export interface BattlePresentationState {
+  mode: "player_command" | "enemy_sequence";
+  steps: EnemySequenceStep[];
+  stepIndex: number;
+  queuedNextIntent: QueuedEnemyIntent | null;
 }
 
 export interface BattleState {
@@ -157,6 +187,8 @@ export interface BattleState {
     intentDamage: number;
     intentTier: EnemyIntentTier;
     intentText: string;
+    intentQuote: string;
+    intentEffects: string[];
   };
   enemyEchoes: EnemyEcho[];
   debuffs: {
@@ -179,6 +211,7 @@ export interface BattleState {
   quietResponseStreak: number;
   understandingChain: number;
   lastResponseIds: BattleResponseId[];
+  presentation: BattlePresentationState;
   enemyAdaptation: EnemyAdaptationState;
   lastDominantStyle: DominantBattleStyle;
   metaPostAbsorption3: boolean;
