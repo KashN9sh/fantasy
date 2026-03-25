@@ -56,6 +56,12 @@ export function createBattleUI(
     const enemyLow = state.enemy.resistance / Math.max(1, state.enemy.maxResistance) <= 0.3;
     const lowHp = state.player.calm / Math.max(1, state.player.maxCalm) <= 0.3;
     const integrationWin = state.phase === "won" && state.enemy.resistance > 0;
+    const adaptationLabel =
+      state.enemyAdaptation.currentTrigger === "same_response"
+        ? "Враг прочитал приём"
+        : state.enemyAdaptation.currentTrigger === "same_style"
+          ? "Враг прочитал стиль"
+          : "Враг читает ритм";
     const debuffs = Object.entries(state.debuffs)
       .filter(([, turns]) => turns > 0)
       .map(([id, turns]) => `${id}:${turns}`)
@@ -108,6 +114,14 @@ export function createBattleUI(
           <div class="battle-head-block">Сдвиг: ${shift.acceptance >= shift.absorption ? "◉◉○" : "○◉◉"}</div>
         </header>
         <div class="battle-intent">Намерение (${state.enemy.intentTier}): ${escapeHtml(state.enemy.intentText)}${state.enemy.intentDamage > 0 ? ` · ${state.enemy.intentDamage} урона` : ""}</div>
+        ${
+          state.enemyAdaptation.currentHint
+            ? `<div class="battle-adaptation">
+                <span class="battle-adaptation-label">${escapeHtml(adaptationLabel)}</span>
+                <span class="battle-adaptation-text">${escapeHtml(state.enemyAdaptation.currentHint)}</span>
+              </div>`
+            : ""
+        }
         <div class="battle-enemy-hero">
           <div class="enemy-silhouette ${enemyLow ? "enemy-silhouette--cracked" : ""}" aria-hidden="true">▓▒░▓▒░</div>
           <div class="hero-name">${escapeHtml(state.enemy.name)}</div>

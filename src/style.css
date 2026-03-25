@@ -525,6 +525,25 @@ select {
   color: var(--muted);
 }
 
+.battle-adaptation {
+  display: grid;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: var(--ui-border-thin) solid var(--danger-soft);
+  background: rgba(183, 110, 110, 0.12);
+  color: var(--text);
+}
+
+.battle-adaptation-label {
+  color: var(--danger);
+  text-transform: uppercase;
+}
+
+.battle-adaptation-text {
+  color: var(--text);
+  font-size: 0.65rem;
+}
+
 .battle-enemy-hero,
 .battle-player-bar {
   background: var(--ui-panel-fill);

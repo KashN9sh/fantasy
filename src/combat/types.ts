@@ -2,6 +2,8 @@ export type BattlePhase = "player" | "enemy" | "won" | "lost" | "abandoned";
 
 export type EnemyIntentTier = "light" | "medium" | "heavy";
 
+export type BattleDebuffId = "panic" | "guilt" | "shame" | "fatigue" | "numbness" | "regret";
+
 export type BattleStanceId = "steady" | "acceptance" | "absorption" | "withdrawal";
 
 export type BattleUnlockDef =
@@ -84,6 +86,54 @@ export interface EnemyEcho {
   buffed: boolean;
 }
 
+export interface EnemyAttackTier {
+  tier: EnemyIntentTier;
+  weight: number;
+  min: number;
+  max: number;
+}
+
+export type EnemyAdaptationTrigger = "same_response" | "same_style";
+
+export type EnemyAdaptationEffect =
+  | { kind: "intent_bonus"; amount: number }
+  | { kind: "set_debuff"; debuff: BattleDebuffId; turns: number }
+  | { kind: "pressure"; amount: number }
+  | { kind: "reduce_understanding"; amount: number }
+  | { kind: "ignore_block"; amount: number };
+
+export interface EnemyAdaptationRule {
+  trigger: EnemyAdaptationTrigger;
+  threshold: number;
+  styles?: DominantBattleStyle[];
+  responseIds?: BattleResponseId[];
+  hint: string;
+  log: string;
+  intentText?: string;
+  effects: EnemyAdaptationEffect[];
+}
+
+export interface BattleEnemyDef {
+  id: string;
+  name: string;
+  level: number;
+  hp: number;
+  intentDamage: number;
+  attacks: EnemyAttackTier[];
+  adaptationRules: EnemyAdaptationRule[];
+}
+
+export interface EnemyAdaptationState {
+  repeatedResponseId: BattleResponseId | null;
+  repeatedResponseCount: number;
+  repeatedStyle: DominantBattleStyle | null;
+  repeatedStyleCount: number;
+  currentHint: string | null;
+  currentTrigger: EnemyAdaptationTrigger | null;
+  intentBonus: number;
+  blockIgnore: number;
+}
+
 export interface BattleState {
   phase: BattlePhase;
   turnNumber: number;
@@ -129,6 +179,7 @@ export interface BattleState {
   quietResponseStreak: number;
   understandingChain: number;
   lastResponseIds: BattleResponseId[];
+  enemyAdaptation: EnemyAdaptationState;
   lastDominantStyle: DominantBattleStyle;
   metaPostAbsorption3: boolean;
   metaPostAcceptance3: boolean;

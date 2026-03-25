@@ -1,7 +1,10 @@
 import type { BattleEndSummary } from "../game/types";
+import { getEnemyBattleDef } from "./enemyBattleDefs";
 import { getBattleResponseDef } from "./responseDefs";
 import { listAvailableStanceIds, listResponsesForStance } from "./stanceDefs";
 import type {
+  BattleEnemyDef,
+  EnemyAdaptationRule,
   BattleResponseId,
   BattleResponseStyle,
   BattleState,
@@ -10,113 +13,6 @@ import type {
   EnemyEcho,
   EnemyIntentTier,
 } from "./types";
-
-type EnemyAttackTier = { tier: EnemyIntentTier; weight: number; min: number; max: number };
-
-const ENEMY_PRESETS: Record<
-  string,
-  { name: string; level: number; hp: number; intentDamage: number; attacks: EnemyAttackTier[] }
-> = {
-  hum_unnamed: {
-    name: "Гул без названия",
-    level: 2,
-    hp: 14,
-    intentDamage: 0,
-    attacks: [
-      { tier: "light", weight: 50, min: 0, max: 0 },
-      { tier: "medium", weight: 30, min: 0, max: 0 },
-      { tier: "heavy", weight: 20, min: 0, max: 0 },
-    ],
-  },
-  trainer_shadow: {
-    name: "Тень тревоги",
-    level: 6,
-    hp: 18,
-    intentDamage: 3,
-    attacks: [
-      { tier: "light", weight: 50, min: 2, max: 3 },
-      { tier: "medium", weight: 30, min: 3, max: 4 },
-      { tier: "heavy", weight: 20, min: 4, max: 5 },
-    ],
-  },
-  voice_must: {
-    name: "Голос «ты должен»",
-    level: 6,
-    hp: 18,
-    intentDamage: 3,
-    attacks: [
-      { tier: "light", weight: 50, min: 2, max: 3 },
-      { tier: "medium", weight: 30, min: 3, max: 4 },
-      { tier: "heavy", weight: 20, min: 4, max: 5 },
-    ],
-  },
-  compare_others: {
-    name: "Сравнение с другими",
-    level: 5,
-    hp: 16,
-    intentDamage: 2,
-    attacks: [
-      { tier: "light", weight: 50, min: 2, max: 2 },
-      { tier: "medium", weight: 30, min: 3, max: 4 },
-      { tier: "heavy", weight: 20, min: 4, max: 5 },
-    ],
-  },
-  shadow_past_decision: {
-    name: "Тень прошлого решения",
-    level: 8,
-    hp: 20,
-    intentDamage: 3,
-    attacks: [
-      { tier: "light", weight: 50, min: 2, max: 3 },
-      { tier: "medium", weight: 30, min: 4, max: 4 },
-      { tier: "heavy", weight: 20, min: 5, max: 6 },
-    ],
-  },
-  insomnia: {
-    name: "Бессонница",
-    level: 4,
-    hp: 12,
-    intentDamage: 0,
-    attacks: [
-      { tier: "light", weight: 50, min: 0, max: 0 },
-      { tier: "medium", weight: 30, min: 0, max: 0 },
-      { tier: "heavy", weight: 20, min: 0, max: 0 },
-    ],
-  },
-  expectation_judgment: {
-    name: "Ожидание «а что подумают»",
-    level: 10,
-    hp: 22,
-    intentDamage: 4,
-    attacks: [
-      { tier: "light", weight: 50, min: 3, max: 4 },
-      { tier: "medium", weight: 30, min: 4, max: 5 },
-      { tier: "heavy", weight: 20, min: 5, max: 6 },
-    ],
-  },
-  root_of_anxiety: {
-    name: "Корень тревоги",
-    level: 16,
-    hp: 28,
-    intentDamage: 5,
-    attacks: [
-      { tier: "light", weight: 50, min: 4, max: 5 },
-      { tier: "medium", weight: 30, min: 5, max: 6 },
-      { tier: "heavy", weight: 20, min: 6, max: 7 },
-    ],
-  },
-  coalition_anxiety: {
-    name: "Коалиция голосов",
-    level: 9,
-    hp: 20,
-    intentDamage: 3,
-    attacks: [
-      { tier: "light", weight: 50, min: 2, max: 3 },
-      { tier: "medium", weight: 30, min: 3, max: 4 },
-      { tier: "heavy", weight: 20, min: 4, max: 5 },
-    ],
-  },
-};
 
 export interface CreateBattleOptions {
   seed?: number;
@@ -155,7 +51,8 @@ function damageEnemy(state: BattleState, amount: number): void {
 function damagePlayer(state: BattleState, amount: number): void {
   const guiltPenalty = state.debuffs.guilt > 0 ? 1 : 0;
   const shamePenalty = state.debuffs.shame > 0 ? 2 : 0;
-  let effectiveBlock = Math.max(0, state.player.block - guiltPenalty - shamePenalty);
+  const adaptationPenalty = state.enemyAdaptation.blockIgnore;
+  let effectiveBlock = Math.max(0, state.player.block - guiltPenalty - shamePenalty - adaptationPenalty);
   let remaining = amount;
   if (effectiveBlock > 0) {
     const absorbed = Math.min(effectiveBlock, remaining);
@@ -183,7 +80,7 @@ function addBlock(state: BattleState, amount: number): void {
 }
 
 function rollEnemyIntent(enemyId: string): { dmg: number; tier: EnemyIntentTier; text: string } {
-  const preset = ENEMY_PRESETS[enemyId] ?? ENEMY_PRESETS.hum_unnamed;
+  const preset = getEnemyBattleDef(enemyId);
   const attacks = preset.attacks;
   const total = attacks.reduce((sum, attack) => sum + attack.weight, 0);
   let r = Math.random() * total;
@@ -220,8 +117,117 @@ function buildIntentText(enemyId: string, tier: EnemyIntentTier): string {
   }
 }
 
+function toDominantStyle(style: BattleResponseStyle): DominantBattleStyle {
+  if (style === "absorption") return "absorption";
+  if (style === "withdrawal") return "withdrawal";
+  if (style === "steady") return "steady";
+  return "acceptance";
+}
+
+function refreshRepeatTracking(
+  state: BattleState,
+  responseId: BattleResponseId,
+  dominantStyle: DominantBattleStyle,
+): void {
+  const adaptation = state.enemyAdaptation;
+  if (adaptation.repeatedResponseId === responseId) adaptation.repeatedResponseCount += 1;
+  else {
+    adaptation.repeatedResponseId = responseId;
+    adaptation.repeatedResponseCount = 1;
+  }
+
+  if (adaptation.repeatedStyle === dominantStyle) adaptation.repeatedStyleCount += 1;
+  else {
+    adaptation.repeatedStyle = dominantStyle;
+    adaptation.repeatedStyleCount = 1;
+  }
+}
+
+function canTriggerAdaptationRule(
+  state: BattleState,
+  rule: EnemyAdaptationRule,
+  responseId: BattleResponseId,
+  dominantStyle: DominantBattleStyle,
+): boolean {
+  if (rule.trigger === "same_response") {
+    if (state.enemyAdaptation.repeatedResponseCount < rule.threshold) return false;
+    if (rule.responseIds && !rule.responseIds.includes(responseId)) return false;
+    return true;
+  }
+
+  if (state.enemyAdaptation.repeatedStyleCount < rule.threshold) return false;
+  if (rule.styles && !rule.styles.includes(dominantStyle)) return false;
+  return true;
+}
+
+function pickAdaptationRule(
+  enemyDef: BattleEnemyDef,
+  state: BattleState,
+  responseId: BattleResponseId,
+  dominantStyle: DominantBattleStyle,
+): EnemyAdaptationRule | null {
+  const matches = enemyDef.adaptationRules.filter((rule) =>
+    canTriggerAdaptationRule(state, rule, responseId, dominantStyle),
+  );
+  if (matches.length === 0) return null;
+  matches.sort((a, b) => {
+    if (b.threshold !== a.threshold) return b.threshold - a.threshold;
+    if (a.trigger !== b.trigger) return a.trigger === "same_response" ? -1 : 1;
+    return 0;
+  });
+  return matches[0] ?? null;
+}
+
+function applyEnemyAdaptation(
+  state: BattleState,
+  enemyDef: BattleEnemyDef,
+  responseId: BattleResponseId,
+  dominantStyle: DominantBattleStyle,
+): void {
+  refreshRepeatTracking(state, responseId, dominantStyle);
+
+  if (
+    state.enemyAdaptation.repeatedResponseCount >= 2 ||
+    state.enemyAdaptation.repeatedStyleCount >= 2
+  ) {
+    state.enemyAdaptation.currentHint ??= "Враг начинает читать твой повторяющийся ритм.";
+  }
+
+  const rule = pickAdaptationRule(enemyDef, state, responseId, dominantStyle);
+  if (!rule) return;
+
+  state.enemyAdaptation.currentHint = rule.hint;
+  state.enemyAdaptation.currentTrigger = rule.trigger;
+  log(state, rule.log);
+
+  for (const effect of rule.effects) {
+    switch (effect.kind) {
+      case "intent_bonus":
+        state.enemyAdaptation.intentBonus += effect.amount;
+        state.enemy.intentDamage += effect.amount;
+        break;
+      case "set_debuff":
+        state.debuffs[effect.debuff] = Math.max(state.debuffs[effect.debuff], effect.turns);
+        break;
+      case "pressure":
+        state.pressureLevel += effect.amount;
+        break;
+      case "reduce_understanding":
+        state.understanding = Math.max(0, state.understanding - effect.amount);
+        break;
+      case "ignore_block":
+        state.enemyAdaptation.blockIgnore += effect.amount;
+        break;
+    }
+  }
+
+  if (rule.intentText) {
+    state.enemy.intentText = rule.intentText;
+  }
+}
+
 function pushEcho(enemyId: string, buffed: boolean): EnemyEcho {
-  const preset = ENEMY_PRESETS[enemyId] ?? ENEMY_PRESETS.voice_must;
+  const preset = getEnemyBattleDef(enemyId);
   return {
     enemyId,
     name: `${preset.name} (эхо)`,
@@ -298,6 +304,10 @@ function beginPlayerTurn(state: BattleState): void {
   state.phase = "player";
   state.turnNumber += 1;
   state.turnUsedResponse = false;
+  state.enemyAdaptation.currentHint = null;
+  state.enemyAdaptation.currentTrigger = null;
+  state.enemyAdaptation.intentBonus = 0;
+  state.enemyAdaptation.blockIgnore = 0;
   if (
     !state.currentStanceId ||
     listResponsesForStance(state.availableResponseIds, state.currentStanceId).length === 0
@@ -351,6 +361,9 @@ function enemyTurn(state: BattleState): void {
   if (state.battleEnemyId === "expectation_judgment") state.debuffs.shame = Math.max(state.debuffs.shame, 2);
 
   if (damage > 0) {
+    if (state.enemyAdaptation.blockIgnore > 0 && state.player.block > 0) {
+      log(state, `${state.enemy.name} находит щель в защите и частично проходит сквозь блок.`);
+    }
     damagePlayer(state, damage);
     log(state, `${state.enemy.name}: ${state.enemy.intentText}.`);
   } else {
@@ -369,7 +382,7 @@ function enemyTurn(state: BattleState): void {
 
 export function createBattle(opts: CreateBattleOptions = {}): BattleState {
   const enemyId = opts.enemyId ?? "hum_unnamed";
-  const preset = ENEMY_PRESETS[enemyId] ?? ENEMY_PRESETS.hum_unnamed;
+  const preset = getEnemyBattleDef(enemyId);
   const intent = rollEnemyIntent(enemyId);
   const availableResponseIds = opts.responseIds ?? ["ground", "boundary", "witness", "push", "step_back"];
 
@@ -418,6 +431,16 @@ export function createBattle(opts: CreateBattleOptions = {}): BattleState {
     quietResponseStreak: 0,
     understandingChain: 0,
     lastResponseIds: [],
+    enemyAdaptation: {
+      repeatedResponseId: null,
+      repeatedResponseCount: 0,
+      repeatedStyle: null,
+      repeatedStyleCount: 0,
+      currentHint: null,
+      currentTrigger: null,
+      intentBonus: 0,
+      blockIgnore: 0,
+    },
     lastDominantStyle: "steady",
     metaPostAbsorption3: false,
     metaPostAcceptance3: false,
@@ -469,17 +492,12 @@ export function useResponse(state: BattleState, responseId: BattleResponseId): s
   if (!canUseResponse(state, responseId)) return "Сейчас этот ответ недоступен.";
 
   const def = getBattleResponseDef(responseId);
+  const enemyDef = getEnemyBattleDef(state.battleEnemyId ?? "hum_unnamed");
+  const dominantStyle = toDominantStyle(def.style);
   state.turnUsedResponse = true;
   state.currentStanceId = def.stanceId;
   markResponseStyle(state, def.style, responseId);
-  state.lastDominantStyle =
-    def.style === "absorption"
-      ? "absorption"
-      : def.style === "withdrawal"
-        ? "withdrawal"
-        : def.style === "steady"
-          ? "steady"
-          : "acceptance";
+  state.lastDominantStyle = dominantStyle;
 
   log(state, `${def.name}: ${def.title.toLowerCase()}.`);
 
@@ -608,6 +626,8 @@ export function useResponse(state: BattleState, responseId: BattleResponseId): s
       if (state.understanding > 0) damageEnemy(state, 1);
       break;
   }
+
+  applyEnemyAdaptation(state, enemyDef, responseId, dominantStyle);
 
   if (state.battleEnemyId === "hum_unnamed") {
     if (def.style !== "absorption" && def.style !== "withdrawal" && state.quietResponseStreak >= 3) {
