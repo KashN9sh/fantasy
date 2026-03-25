@@ -10,7 +10,7 @@ export type GameMode =
   | "end"
   | "finale"
   | "credits"
-  | "deck_view";
+  | "practice_view";
 
 export interface DialogLine {
   speaker: string;
@@ -128,7 +128,7 @@ export interface EncounterRuntime {
   moveDirLog: { dx: number; dy: number; t: number }[];
   firstRevisitShadowDone: boolean;
   wanderGulInsomniaUsed: boolean;
-  zonesWithoutCardUse: number;
+  zonesWithoutPressure: number;
   queuedEncounter: PendingEncounter | null;
   rematch: { enemyId: string; powerLevel: number } | null;
   fleeAlly: { primaryId: string; allyId: string } | null;
@@ -145,12 +145,12 @@ export interface EncounterRuntime {
   /** Первый выбор «отдохнуть» на привале (§3.2 → Голос) */
   restVoiceBattleDone: boolean;
   pendingRestInsomnia: boolean;
-  compareInventoryDone: boolean;
-  threeSameCategoryDone: boolean;
-  /** После боя: серии карт §3.3 */
+  comparePracticeDone: boolean;
+  threeSameStyleDone: boolean;
+  /** После боя: серии ответов */
   postBattleAbsorption3: boolean;
   postBattleAcceptance3: boolean;
-  postBattleDiscard3: boolean;
+  postBattleWithdrawal3: boolean;
   /** §3.6: после «понимания» одного — усилить второго (упрощённо: баф миньона в бою) */
   buffAllyMinionNextBattle: boolean;
   /** Выборы диалога для триггеров */
@@ -159,20 +159,24 @@ export interface EncounterRuntime {
   genericLieBattleDone: boolean;
   /** Серия зон без паузы уже вызвала бессонницу (§3.1) */
   insomniaRushUsed: boolean;
-  /** После боя без сыгранных карт — считаем зоны */
-  lastBattleNoCards: boolean;
+  /** После боя без давления — считаем зоны */
+  lastBattleNoPressure: boolean;
+  lastWinStyle: "acceptance" | "absorption" | "withdrawal" | "steady" | null;
+  sameStyleWinStreak: number;
 }
 
 /** Итог боя для триггеров [ENCOUNTER_SYSTEM.md](../../docs/ENCOUNTER_SYSTEM.md) */
 export interface BattleEndSummary {
   endKind: "won" | "lost" | "abandoned";
-  /** Победа без обнуления ОЗ врага (карты, условия) */
+  /** Победа без обнуления устойчивости (понимание/интеграция) */
   integrationWin: boolean;
   enemyId: string | null;
-  hadAnyCardPlayed: boolean;
+  hadAnyResponse: boolean;
+  hadPressureResponse: boolean;
   postAbsorption3: boolean;
   postAcceptance3: boolean;
-  postDiscard3: boolean;
+  postWithdrawal3: boolean;
+  dominantStyle: "acceptance" | "absorption" | "withdrawal" | "steady";
 }
 
 export function createInitialEncounterRuntime(): EncounterRuntime {
@@ -187,7 +191,7 @@ export function createInitialEncounterRuntime(): EncounterRuntime {
     moveDirLog: [],
     firstRevisitShadowDone: false,
     wanderGulInsomniaUsed: false,
-    zonesWithoutCardUse: 0,
+    zonesWithoutPressure: 0,
     queuedEncounter: null,
     rematch: null,
     fleeAlly: null,
@@ -203,17 +207,19 @@ export function createInitialEncounterRuntime(): EncounterRuntime {
     restDeclines: 0,
     restVoiceBattleDone: false,
     pendingRestInsomnia: false,
-    compareInventoryDone: false,
-    threeSameCategoryDone: false,
+    comparePracticeDone: false,
+    threeSameStyleDone: false,
     postBattleAbsorption3: false,
     postBattleAcceptance3: false,
-    postBattleDiscard3: false,
+    postBattleWithdrawal3: false,
     buffAllyMinionNextBattle: false,
     hurtfulTruthTriggered: false,
     refuseHelpBattleDone: false,
     genericLieBattleDone: false,
     insomniaRushUsed: false,
-    lastBattleNoCards: false,
+    lastBattleNoPressure: false,
+    lastWinStyle: null,
+    sameStyleWinStreak: 0,
   } satisfies EncounterRuntime;
 }
 
@@ -238,18 +244,18 @@ export interface GameState {
   pendingBattleAllyId: string | null;
   pendingBattlePowerScale: number;
   pendingBattleBuffAlly: boolean;
-  /** Понятые враги — задел под карты интеграции (фаза 2) */
+  /** Понятые враги — открывают новые внутренние ответы */
   integratedEnemyIds: string[];
-  /** Карты, потерянные навсегда после мягкого поражения */
-  removedDeckCardIds: string[];
+  /** Ответы, временно утраченные после мягкого поражения */
+  sealedResponseIds: string[];
   /** Текущая зона оверворлда ([`WORLD_ZONE_IDS`](../data/worldZones.ts)) */
   currentZoneId: WorldZoneId;
   /** Уже показан входной текст при первом заходе в зону */
   visitedZoneIds: WorldZoneId[];
   /** Ни разу не уходил из боя досрочно (для «Стоять») — при появлении «бегства» выставить false */
   neverFledBattle: boolean;
-  /** Одноразовая «Край» из колоды израсходована */
-  edgeCardUsed: boolean;
+  /** Одноразовый редкий ответ «Край» уже исчерпан */
+  edgeResponseUsed: boolean;
   /** Побежденные миньоны (не показывать повторный бой на тайле) */
   defeatedEnemyIds: string[];
   /**
@@ -313,11 +319,11 @@ export function createInitialState(): GameState {
     pendingBattlePowerScale: 1,
     pendingBattleBuffAlly: false,
     integratedEnemyIds: [],
-    removedDeckCardIds: [],
+    sealedResponseIds: [],
     currentZoneId: "clearing",
     visitedZoneIds: [],
     neverFledBattle: true,
-    edgeCardUsed: false,
+    edgeResponseUsed: false,
     defeatedEnemyIds: [],
     encounterStandTile: null,
     exploreIdleMs: 0,

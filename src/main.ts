@@ -2,11 +2,11 @@ import "./style.css";
 import { summarizeBattleEnd } from "./combat/engine";
 import type { BattleState } from "./combat/types";
 import {
-  buildBattleDeckIds,
-  buildBattleSamplingContext,
-  tryEncounterThreeSameDeckCategory,
-} from "./combat/deckBuild";
-import { getBattleCardDef } from "./combat/battleCardDefs";
+  buildBattleResponseIds,
+  buildPracticeViewItems,
+  pickSealableResponseId,
+  tryEncounterThreeSameResponseStyle,
+} from "./combat/responseLoadout";
 import { syncThemeFromGameMode } from "./theme/syncGameTheme";
 import { getHermitDialog } from "./data/story";
 import { CHOICE_FORK_CLEARING, AFTER_FORK_LINES, INTRO_SCREENS } from "./data/storyScenes";
@@ -239,20 +239,17 @@ function closeDeckViewUi() {
 function openDeckViewUi() {
   if (state.mode !== "explore") return;
   closeDeckViewUi();
-  state.mode = "deck_view";
+  state.mode = "practice_view";
   deckViewAccumMs = 0;
-  const ids = buildBattleDeckIds(state);
+  const itemsData = buildPracticeViewItems(state);
   deckViewWrap = document.createElement("div");
   deckViewWrap.className = "deck-view-overlay pixel-overlay pixel-overlay--center";
-  const items = ids
-    .map((id) => {
-      const d = getBattleCardDef(id);
-      return `<li>${escapeHtmlDeck(d?.name ?? id)}</li>`;
-    })
+  const items = itemsData
+    .map((item) => `<li><strong>${escapeHtmlDeck(item.name)}</strong><br />${escapeHtmlDeck(item.hint)}</li>`)
     .join("");
   deckViewWrap.innerHTML = `
     <div class="deck-view-box pixel-panel pixel-panel--strong pixel-stack">
-      <h3 class="deck-view-title">Колода</h3>
+      <h3 class="deck-view-title">Опоры</h3>
       <p class="deck-view-hint">Удерживай открытым 20 с — триггер «Сравнение». I или Esc — закрыть.</p>
       <ul class="deck-view-list pixel-list">${items}</ul>
     </div>
@@ -285,7 +282,7 @@ function showCredits() {
     <div class="end-screen-box pixel-panel pixel-panel--strong pixel-stack">
       <h2>Тихая тропа</h2>
       <p>Сценарий: часть 9 «Корень» и финал по [FINALE.md]. Спасибо за игру.</p>
-      <p class="credits-meta">Колода и вероятности — DECK.md / DECK_PROBABILITIES.md</p>
+      <p class="credits-meta">Внутренние опоры и ритм конфликта — COMBAT_SYSTEM.md</p>
       <button type="button" class="card-close pixel-button pixel-button--accent">Вернуться</button>
     </div>
   `;
@@ -441,11 +438,10 @@ const battleUI = createBattleUI(rootEl, {
   },
   getBattleOptions: () => ({
     enemyId: state.pendingBattleEnemyId ?? "hum_unnamed",
-    deckIds: buildBattleDeckIds(state),
-    samplingContext: buildBattleSamplingContext(state),
+    responseIds: buildBattleResponseIds(state),
     allyEnemyId: state.pendingBattleAllyId ?? undefined,
     enemyPowerScale: state.pendingBattlePowerScale > 1 ? state.pendingBattlePowerScale : undefined,
-    buffAllyMinion: state.pendingBattleBuffAlly ? true : undefined,
+    buffAllyEcho: state.pendingBattleBuffAlly ? true : undefined,
   }),
   getShift: () => ({ acceptance: state.acceptance, absorption: state.absorption }),
   getTutorialStep: () =>
@@ -470,19 +466,19 @@ const battleUI = createBattleUI(rootEl, {
           endKind: "abandoned",
           integrationWin: false,
           enemyId: eid,
-          hadAnyCardPlayed: false,
+          hadAnyResponse: false,
+          hadPressureResponse: false,
           postAbsorption3: false,
           postAcceptance3: false,
-          postDiscard3: false,
+          postWithdrawal3: false,
+          dominantStyle: "steady",
         };
 
     applyBattleEndToEncounters(state, summary);
     if (summary.endKind === "lost") {
-      const currentDeck = buildBattleDeckIds(state);
-      const available = currentDeck.filter((id) => !state.removedDeckCardIds.includes(id));
-      if (available.length > 1) {
-        const lostCard = available[Math.floor(Math.random() * available.length)];
-        state.removedDeckCardIds.push(lostCard);
+      const sealedResponse = pickSealableResponseId(state);
+      if (sealedResponse && !state.sealedResponseIds.includes(sealedResponse)) {
+        state.sealedResponseIds.push(sealedResponse);
       }
       const spawn = ZONE_LAYOUT.last_camp.spawnIn;
       state.currentZoneId = "last_camp";
@@ -500,6 +496,9 @@ const battleUI = createBattleUI(rootEl, {
       }
       if (summary.integrationWin && !state.integratedEnemyIds.includes(wid)) {
         state.integratedEnemyIds.push(wid);
+        if (state.sealedResponseIds.length > 0) {
+          state.sealedResponseIds.shift();
+        }
       }
       if (wid === "hum_unnamed") {
         state.flags.defeatedGulTrainer = true;
@@ -508,14 +507,14 @@ const battleUI = createBattleUI(rootEl, {
       if (summary.integrationWin) {
         state.encounter.buffAllyMinionNextBattle = true;
       }
-      const deckTrip = tryEncounterThreeSameDeckCategory(state);
-      if (deckTrip && !state.encounter.queuedEncounter) {
-        state.encounter.queuedEncounter = deckTrip;
+      const styleTrip = tryEncounterThreeSameResponseStyle(state, summary.dominantStyle);
+      if (styleTrip && !state.encounter.queuedEncounter) {
+        state.encounter.queuedEncounter = styleTrip;
       }
     }
 
-    if (lastBattle?.playedEdgeCard) {
-      state.edgeCardUsed = true;
+    if (lastBattle?.usedResponses.includes("edge")) {
+      state.edgeResponseUsed = true;
     }
     combatState = null;
     state.pendingBattleEnemyId = null;
@@ -1151,10 +1150,10 @@ function frame(now: number) {
       startEncounterFromPending(enc);
     }
     updateExploreInteractions();
-  } else if (state.mode === "deck_view") {
+  } else if (state.mode === "practice_view") {
     deckViewAccumMs += dt;
-    if (deckViewAccumMs >= 20_000 && !state.encounter.compareInventoryDone) {
-      state.encounter.compareInventoryDone = true;
+    if (deckViewAccumMs >= 20_000 && !state.encounter.comparePracticeDone) {
+      state.encounter.comparePracticeDone = true;
       closeDeckViewUi();
       startEncounterFromPending({ enemyId: "compare_others", lines: LINES_INVENTORY_COMPARE });
     }

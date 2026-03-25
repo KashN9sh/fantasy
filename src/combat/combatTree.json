@@ -1,0 +1,367 @@
+{
+  "stances": [
+    {
+      "id": "steady",
+      "name": "Опора",
+      "title": "Держать форму",
+      "desc": "Собрать тело, дыхание и границу, чтобы шум не разнёс тебя сразу.",
+      "icon": "▣",
+      "unlock": { "kind": "base" }
+    },
+    {
+      "id": "acceptance",
+      "name": "Признать",
+      "title": "Смотреть прямо",
+      "desc": "Не спорить с тем, что уже есть, и называть это без насилия.",
+      "icon": "◌",
+      "unlock": { "kind": "base" }
+    },
+    {
+      "id": "absorption",
+      "name": "Нажим",
+      "title": "Дожать шум",
+      "desc": "Собраться в усилие и попытаться продавить тревогу раньше, чем она продавит тебя.",
+      "icon": "▲",
+      "unlock": { "kind": "base" }
+    },
+    {
+      "id": "withdrawal",
+      "name": "Дистанция",
+      "title": "Разомкнуть контакт",
+      "desc": "Уменьшить близость, выйти из сцепления и не дать бою захлопнуться вокруг тебя.",
+      "icon": "↩",
+      "unlock": { "kind": "base" }
+    }
+  ],
+  "responses": [
+    {
+      "id": "ground",
+      "stanceId": "steady",
+      "name": "Опора",
+      "style": "steady",
+      "title": "Остаться в теле",
+      "desc": "Вернуться к дыханию и полу под ногами.",
+      "effectHint": "+2 спокойствия. Ослабляет панику.",
+      "icon": "◎",
+      "unlockGroup": "base",
+      "unlock": { "kind": "base" }
+    },
+    {
+      "id": "boundary",
+      "stanceId": "steady",
+      "name": "Граница",
+      "style": "steady",
+      "title": "Отделить своё",
+      "desc": "Поставить твёрдую линию между собой и давлением.",
+      "effectHint": "+4 блока. Ослабляет вину или стыд.",
+      "icon": "▣",
+      "unlockGroup": "base",
+      "unlock": { "kind": "base" }
+    },
+    {
+      "id": "witness",
+      "stanceId": "acceptance",
+      "name": "Признать",
+      "style": "acceptance",
+      "title": "Посмотреть прямо",
+      "desc": "Не спорить с тем, что уже есть.",
+      "effectHint": "-2 устойчивости. Копит понимание.",
+      "icon": "◌",
+      "unlockGroup": "base",
+      "unlock": { "kind": "base" }
+    },
+    {
+      "id": "push",
+      "stanceId": "absorption",
+      "name": "Нажать",
+      "style": "absorption",
+      "title": "Продавить шум",
+      "desc": "Временно заглушить тревогу усилием.",
+      "effectHint": "-3 устойчивости. -1 спокойствие.",
+      "icon": "▲",
+      "unlockGroup": "base",
+      "unlock": { "kind": "base" }
+    },
+    {
+      "id": "step_back",
+      "stanceId": "withdrawal",
+      "name": "Отойти",
+      "style": "withdrawal",
+      "title": "Разомкнуть контакт",
+      "desc": "Сделать шаг назад и не позволить шуму диктовать ритм.",
+      "effectHint": "+2 блока. Повторно может завершить бой уходом.",
+      "icon": "↩",
+      "unlockGroup": "base",
+      "unlock": { "kind": "base" }
+    },
+    {
+      "id": "unhook",
+      "stanceId": "withdrawal",
+      "name": "Разжать хватку",
+      "style": "withdrawal",
+      "title": "Ослабить сцепление",
+      "desc": "Не тянуть себя обратно в ту же спираль.",
+      "effectHint": "+2 блока. -1 к намерению врага.",
+      "icon": "⌒",
+      "unlockGroup": "base",
+      "unlock": { "kind": "style_win_streak", "style": "withdrawal", "wins": 1 }
+    },
+    {
+      "id": "far_horizon",
+      "stanceId": "withdrawal",
+      "name": "Дальний горизонт",
+      "style": "withdrawal",
+      "title": "Увидеть жизнь дальше боя",
+      "desc": "Напомнить себе, что за этим давлением есть дорога дальше.",
+      "effectHint": "+2 спокойствия. +1 понимание. На серии отхода помогает уйти безопасно.",
+      "icon": "⋯",
+      "unlockGroup": "base",
+      "unlock": { "kind": "style_win_streak", "style": "withdrawal", "wins": 2 }
+    },
+    {
+      "id": "breathe_square",
+      "stanceId": "steady",
+      "name": "Квадрат",
+      "style": "acceptance",
+      "title": "Дышать по ритму",
+      "desc": "Четыре равные доли вместо спешки.",
+      "effectHint": "+1 спокойствие. +3 блока. Снимает панику.",
+      "icon": "□",
+      "unlockGroup": "acceptance",
+      "unlock": {
+        "kind": "any_of",
+        "conditions": [
+          { "kind": "shift", "axis": "acceptance", "min": 4 },
+          { "kind": "style_win_streak", "style": "acceptance", "wins": 1 }
+        ]
+      }
+    },
+    {
+      "id": "honest_rest",
+      "stanceId": "acceptance",
+      "name": "Честный отдых",
+      "style": "acceptance",
+      "title": "Признать предел",
+      "desc": "Сказать себе правду и перестать дожимать.",
+      "effectHint": "Спокойствие до максимума. Следующий ход пропускается.",
+      "icon": "☾",
+      "unlockGroup": "acceptance",
+      "unlock": {
+        "kind": "any_of",
+        "conditions": [
+          { "kind": "shift", "axis": "acceptance", "min": 6 },
+          { "kind": "style_win_streak", "style": "acceptance", "wins": 2 }
+        ]
+      }
+    },
+    {
+      "id": "autopilot",
+      "stanceId": "absorption",
+      "name": "Автопилот",
+      "style": "absorption",
+      "title": "Выключить лишнее",
+      "desc": "Сузить мир до одной задачи.",
+      "effectHint": "-4 устойчивости. Добавляет онемение.",
+      "icon": "⚙",
+      "unlockGroup": "absorption",
+      "unlock": {
+        "kind": "any_of",
+        "conditions": [
+          { "kind": "shift", "axis": "absorption", "min": 4 },
+          { "kind": "style_win_streak", "style": "absorption", "wins": 1 }
+        ]
+      }
+    },
+    {
+      "id": "hard_wall",
+      "stanceId": "withdrawal",
+      "name": "Стена",
+      "style": "withdrawal",
+      "title": "Не подпускать",
+      "desc": "Сделать себя недоступным для касания.",
+      "effectHint": "+6 блока. Добавляет сожаление.",
+      "icon": "▤",
+      "unlockGroup": "absorption",
+      "unlock": {
+        "kind": "any_of",
+        "conditions": [
+          { "kind": "shift", "axis": "absorption", "min": 6 },
+          { "kind": "style_win_streak", "style": "absorption", "wins": 2 }
+        ]
+      }
+    },
+    {
+      "id": "background_noise",
+      "stanceId": "acceptance",
+      "name": "Фоновый шум",
+      "style": "integration",
+      "title": "Пусть будет рядом",
+      "desc": "Шум остаётся шумом, не приказом.",
+      "effectHint": "+2 спокойствия. +1 понимание.",
+      "icon": "≈",
+      "unlockGroup": "integration",
+      "unlock": { "kind": "integrated_enemy", "enemyId": "hum_unnamed" }
+    },
+    {
+      "id": "inner_advisor",
+      "stanceId": "acceptance",
+      "name": "Советчик",
+      "style": "integration",
+      "title": "Слышать без подчинения",
+      "desc": "То, что раньше давило, теперь только советует.",
+      "effectHint": "-1 намерение врага. Снимает вину.",
+      "icon": "◔",
+      "unlockGroup": "integration",
+      "unlock": { "kind": "integrated_enemy", "enemyId": "voice_must" }
+    },
+    {
+      "id": "own_path",
+      "stanceId": "withdrawal",
+      "name": "Своя тропа",
+      "style": "integration",
+      "title": "Не сравнивать шаг",
+      "desc": "Вернуться к своему темпу и своей дороге.",
+      "effectHint": "+3 блока. Снимает стыд.",
+      "icon": "⋰",
+      "unlockGroup": "integration",
+      "unlock": { "kind": "integrated_enemy", "enemyId": "compare_others" }
+    },
+    {
+      "id": "companion",
+      "stanceId": "withdrawal",
+      "name": "Спутница",
+      "style": "integration",
+      "title": "Не воевать с тенью",
+      "desc": "Позволить прошлому идти рядом, а не сверху.",
+      "effectHint": "+2 спокойствия. Снимает онемение и сожаление.",
+      "icon": "◑",
+      "unlockGroup": "integration",
+      "unlock": { "kind": "integrated_enemy", "enemyId": "shadow_past_decision" }
+    },
+    {
+      "id": "night_talk",
+      "stanceId": "acceptance",
+      "name": "Ночной разговор",
+      "style": "integration",
+      "title": "Дать мысли договорить",
+      "desc": "Не убегать от ночной мысли, а переждать её форму.",
+      "effectHint": "Против бессонницы даёт сильное понимание.",
+      "icon": "☽",
+      "unlockGroup": "integration",
+      "unlock": { "kind": "integrated_enemy", "enemyId": "insomnia" }
+    },
+    {
+      "id": "own_eyes",
+      "stanceId": "withdrawal",
+      "name": "Свои глаза",
+      "style": "integration",
+      "title": "Смотреть своим взглядом",
+      "desc": "Не жить внутри чужого ожидания.",
+      "effectHint": "-2 устойчивости. Снимает стыд и вину.",
+      "icon": "◉",
+      "unlockGroup": "integration",
+      "unlock": { "kind": "integrated_enemy", "enemyId": "expectation_judgment" }
+    },
+    {
+      "id": "vera_map",
+      "stanceId": "steady",
+      "name": "Карта Веры",
+      "style": "npc",
+      "title": "Знать, куда идти",
+      "desc": "Опора на уже найденный маршрут.",
+      "effectHint": "+2 блока. +1 спокойствие.",
+      "icon": "⌘",
+      "unlockGroup": "npc",
+      "unlock": { "kind": "flag_true", "flag": "veraMapReady" }
+    },
+    {
+      "id": "quiet_voice",
+      "stanceId": "acceptance",
+      "name": "Тихий голос",
+      "style": "npc",
+      "title": "Слышать без нажима",
+      "desc": "Поддержка без приказа.",
+      "effectHint": "-1 намерение врага. +1 понимание.",
+      "icon": "˙",
+      "unlockGroup": "npc",
+      "unlock": { "kind": "answers_at_least", "count": 4 }
+    },
+    {
+      "id": "sapling",
+      "stanceId": "steady",
+      "name": "Саженец",
+      "style": "npc",
+      "title": "Расти медленно",
+      "desc": "Не требовать от себя мгновенной формы.",
+      "effectHint": "+2 спокойствия. Ослабляет усталость.",
+      "icon": "♣",
+      "unlockGroup": "npc",
+      "unlock": { "kind": "shift", "axis": "acceptance", "min": 6 }
+    },
+    {
+      "id": "echo_echo",
+      "stanceId": "withdrawal",
+      "name": "Эхо",
+      "style": "npc",
+      "title": "Слышать прошлое мягко",
+      "desc": "Память больше не обязана давить.",
+      "effectHint": "-2 устойчивости. Ослабляет сожаление.",
+      "icon": "∿",
+      "unlockGroup": "npc",
+      "unlock": { "kind": "flag_true", "flag": "iraQuestActive" }
+    },
+    {
+      "id": "trail_follow",
+      "stanceId": "withdrawal",
+      "name": "След",
+      "style": "npc",
+      "title": "Идти не первым",
+      "desc": "Довериться тому, что дорога уже когда-то выдержала чей-то вес.",
+      "effectHint": "+1 спокойствие. +1 понимание. +2 блока.",
+      "icon": "∴",
+      "unlockGroup": "npc",
+      "unlock": { "kind": "flag_true", "flag": "metFigure" }
+    },
+    {
+      "id": "final_silence",
+      "stanceId": "acceptance",
+      "name": "Тишина",
+      "style": "rare",
+      "title": "Больше не спорить",
+      "desc": "Редкое состояние, где шуму не во что вцепиться.",
+      "effectHint": "Если понимание высоко, завершает бой пониманием.",
+      "icon": "○",
+      "unlockGroup": "rare",
+      "unlock": { "kind": "integrated_enemy_count", "count": 6 }
+    },
+    {
+      "id": "edge",
+      "stanceId": "absorption",
+      "name": "Край",
+      "style": "rare",
+      "title": "Собраться в один шаг",
+      "desc": "Короткий, опасный рывок через давление.",
+      "effectHint": "-6 устойчивости. -2 спокойствие. Одноразово за игру.",
+      "icon": "✦",
+      "unlockGroup": "rare",
+      "unlock": {
+        "kind": "peak_once",
+        "acceptanceAtLeast": 10,
+        "absorptionAtLeast": 10,
+        "consumes": "edgeResponseUsed"
+      }
+    },
+    {
+      "id": "stand",
+      "stanceId": "steady",
+      "name": "Стоять",
+      "style": "rare",
+      "title": "Не бежать",
+      "desc": "Жёсткая, но спокойная стойка без отступления.",
+      "effectHint": "+5 блока. Если уже есть понимание, даёт ещё и -1 устойчивости.",
+      "icon": "▴",
+      "unlockGroup": "rare",
+      "unlock": { "kind": "never_fled_with_integrations", "count": 1 }
+    }
+  ]
+}

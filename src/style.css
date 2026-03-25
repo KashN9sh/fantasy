@@ -52,10 +52,11 @@ select {
   background: var(--shell-bg);
 }
 
+/* Логика: 320×240 в разметке канваса → удобный пиксельный показ ×2. Пустое место в #app под будущий HUD. */
 #world {
   display: block;
-  width: 960px;
-  height: 720px;
+  width: 640px;
+  height: 480px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
@@ -192,7 +193,7 @@ select {
   font-size: 0.85rem;
   color: var(--muted);
   text-align: center;
-  max-width: 960px;
+  max-width: 640px;
 }
 
 .dialog-overlay {
@@ -473,6 +474,11 @@ select {
   color: var(--text);
 }
 
+.battle-layout--ritual {
+  font-family: var(--ui-font-body);
+  color: var(--text);
+}
+
 .battle-header {
   display: flex;
   flex-wrap: wrap;
@@ -646,13 +652,169 @@ select {
   line-height: 1.35;
 }
 
-.battle-hand {
+.battle-echoes {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  justify-content: center;
-  padding: 0.35rem 0;
-  align-items: flex-end;
+  gap: var(--ui-space-2);
+}
+
+.battle-echo {
+  display: inline-flex;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  min-width: 12rem;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: var(--ui-border-thin) solid var(--ui-chip-line);
+  background: var(--ui-chip-fill);
+  color: var(--text);
+}
+
+.battle-stance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--ui-space-3);
+}
+
+.battle-stance {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--ui-space-2);
+  align-items: center;
+  padding: var(--ui-space-3);
+  border: var(--ui-border-regular) solid var(--ui-panel-line-soft);
+  background: var(--ui-panel-fill);
+  color: var(--text);
+  box-shadow: var(--ui-shadow-pixel);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.08s steps(2, end), background-color 0.12s ease;
+}
+
+.battle-stance:hover:not(.disabled) {
+  transform: translate(-3px, -3px);
+}
+
+.battle-stance--active {
+  border-color: var(--accent);
+  background: var(--ui-panel-fill-strong);
+}
+
+.battle-stance.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.battle-stance-icon {
+  color: var(--accent);
+  font-family: var(--ui-font-display);
+}
+
+.battle-stance-copy {
+  display: grid;
+  gap: var(--ui-space-1);
+}
+
+.battle-stance-name {
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.battle-stance-title {
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+.battle-stance-panel {
+  display: grid;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-3);
+  border: var(--ui-border-thin) solid var(--ui-panel-line-soft);
+  background: var(--ui-panel-fill);
+}
+
+.battle-stance-panel-title {
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.battle-stance-panel-desc {
+  color: var(--text);
+  font-size: 0.68rem;
+}
+
+.battle-response-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--ui-space-3);
+}
+
+.battle-response {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--ui-space-3);
+  align-items: start;
+  padding: var(--ui-space-3);
+  border: var(--ui-border-regular) solid var(--ui-panel-line);
+  background: var(--ui-panel-fill);
+  color: var(--text);
+  box-shadow: var(--ui-shadow-pixel);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.08s steps(2, end), background-color 0.12s ease;
+}
+
+.battle-response:hover:not(.disabled) {
+  transform: translate(-3px, -3px);
+}
+
+.battle-response.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.battle-response--acceptance,
+.battle-response--integration,
+.battle-response--npc,
+.battle-response--rare {
+  border-color: #7c9a7a;
+}
+
+.battle-response--absorption {
+  border-color: #b76e6e;
+}
+
+.battle-response--withdrawal {
+  border-color: #c49a6e;
+}
+
+.battle-response--steady {
+  border-color: #8ab3b3;
+}
+
+.battle-response-icon {
+  min-width: 1.8rem;
+  color: var(--accent);
+  font-family: var(--ui-font-display);
+}
+
+.battle-response-copy {
+  display: grid;
+  gap: var(--ui-space-1);
+}
+
+.battle-response-name {
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.battle-response-title {
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.battle-response-hint {
+  color: var(--muted);
+  font-size: 0.62rem;
 }
 
 /* Карта в духе классического «монстра» (рамка, звёзды, арт, текст, ATK/DEF) */
@@ -661,6 +823,7 @@ select {
   --ygo-parchment-dark: #b89b78;
   --ygo-frame: #4a2f18;
   --ygo-inner: #c9a882;
+  --ygo-type-glow: rgba(196, 154, 110, 0.35);
   position: relative;
   width: 11em;
   min-height: 15.5em;
@@ -676,8 +839,33 @@ select {
 }
 
 .battle-card.ygo-card:hover:not(.disabled) {
-  filter: drop-shadow(3px 6px 9px rgba(201, 168, 108, 0.35)) brightness(1.08);
+  filter: drop-shadow(3px 6px 9px var(--ygo-type-glow)) brightness(1.08);
   transform: translateY(-3px);
+}
+
+.battle-card.ygo-card.ygo-type--attack {
+  --ygo-frame: #b76e6e;
+  --ygo-type-glow: rgba(183, 110, 110, 0.42);
+}
+
+.battle-card.ygo-card.ygo-type--spell {
+  --ygo-frame: #c49a6e;
+  --ygo-type-glow: rgba(196, 154, 110, 0.42);
+}
+
+.battle-card.ygo-card.ygo-type--buff {
+  --ygo-frame: #7c9a7a;
+  --ygo-type-glow: rgba(124, 154, 122, 0.45);
+}
+
+.battle-card.ygo-card.ygo-type--utility {
+  --ygo-frame: #8ab3b3;
+  --ygo-type-glow: rgba(138, 179, 179, 0.45);
+}
+
+.battle-card.ygo-card.ygo-type--summon {
+  --ygo-frame: #8a9a6e;
+  --ygo-type-glow: rgba(138, 154, 110, 0.45);
 }
 
 .battle-card.disabled {
@@ -826,6 +1014,18 @@ select {
   box-shadow: none;
 }
 
+.battle-card.ygo-card.ygo-id--silence_accept .ygo-art {
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(245, 235, 224, 0.85), rgba(245, 235, 224, 0.08) 65%),
+    linear-gradient(180deg, #faddc6 0%, #eadbc6 100%);
+}
+
+.battle-card.ygo-card.ygo-id--silence_finale .ygo-art {
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.15) 68%),
+    linear-gradient(180deg, #fffdfa 0%, #f2eee8 100%);
+}
+
 .ygo-textbox {
   flex: 1;
   display: flex;
@@ -847,7 +1047,17 @@ select {
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 5;
+  line-clamp: 5;
   -webkit-box-orient: vertical;
+}
+
+.ygo-effect {
+  margin-top: 0.2em;
+  padding-top: 0.2em;
+  border-top: 3px solid rgba(58, 40, 20, 0.35);
+  font-size: 0.62em;
+  line-height: 1.25;
+  color: #2f3e46;
 }
 
 .ygo-stats {
@@ -863,6 +1073,12 @@ select {
   letter-spacing: 0.03em;
   color: #0a0806;
   font-family: var(--ui-font-body);
+}
+
+.ygo-kind {
+  margin-right: auto;
+  color: #4a2f18;
+  opacity: 0.85;
 }
 
 .ygo-stat-atk,

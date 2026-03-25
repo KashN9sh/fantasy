@@ -206,7 +206,7 @@ export const ROOT_ACCEPTANCE_ECHO: DialogLine[] = [
 export const ROOT_ABSORPTION_OPEN: DialogLine[] = [
   {
     speaker: ROOT_SPEAKER,
-    text: "Корень встаёт. У него твоё лицо. Твои карты. Твой шум. «Ты хотел победить? Попробуй.»",
+    text: "Корень встаёт. У него твоё лицо. Твои опоры. Твой шум. «Ты хотел победить? Попробуй.»",
   },
 ];
 

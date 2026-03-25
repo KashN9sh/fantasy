@@ -48,7 +48,7 @@ export function resolveCardPick(element: string): { success: boolean; text: stri
   if (element === "noise") {
     return {
       success: false,
-      text: "Колокольчик звенит слишком громко — тревога только вздрагивает. Попробуй что-нибудь потише.",
+      text: "Звук оказывается слишком резким — тревога только вздрагивает. Попробуй что-нибудь потише.",
     };
   }
   if (element === "calm" || element === "light" || element === "ward") {

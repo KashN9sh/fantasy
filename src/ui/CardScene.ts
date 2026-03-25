@@ -20,8 +20,8 @@ export function createCardSceneController(root: HTMLElement): CardSceneControlle
     scene.className = "card-scene";
     scene.innerHTML = `
       <div class="card-scene-shell pixel-panel pixel-panel--strong pixel-stack">
-        <h3 class="card-scene-title">Что ты протянешь тревоге?</h3>
-        <p class="card-scene-sub">Выбери одну карту. Тихие вещи подходят лучше громких.</p>
+        <h3 class="card-scene-title">Что ты предложишь тревоге?</h3>
+        <p class="card-scene-sub">Выбери один тихий жест. Мягкие вещи подходят лучше громких.</p>
         <div class="card-hand" role="list"></div>
         <div class="card-outcome" hidden></div>
       </div>

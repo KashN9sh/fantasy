@@ -8,7 +8,7 @@ export interface CardDef {
   element: CardElement;
 }
 
-/** «Хорошие» карты успокаивают тревогу; noise — шуточный промах */
+/** Ранние тихие жесты для сцены у отшельника; noise — намеренный промах */
 export const CARDS: CardDef[] = [
   {
     id: "tea",

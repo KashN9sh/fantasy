@@ -107,8 +107,8 @@ export function encounterOnZoneEntered(state: GameState, _zone: WorldZoneId, isF
   er.totalZoneTransitions += 1;
   er.zonesSinceBattle += 1;
 
-  if (er.lastBattleNoCards) {
-    er.zonesWithoutCardUse += 1;
+  if (er.lastBattleNoPressure) {
+    er.zonesWithoutPressure += 1;
   }
 
   if (!isFirstVisit) {
@@ -212,16 +212,16 @@ export function encounterOnZoneEntered(state: GameState, _zone: WorldZoneId, isF
       return { enemyId: "voice_must", lines: getEncounterWarning("voice_must") };
     }
   }
-  if (er.postBattleDiscard3) {
-    er.postBattleDiscard3 = false;
+  if (er.postBattleWithdrawal3) {
+    er.postBattleWithdrawal3 = false;
     if (!state.defeatedEnemyIds.includes("shadow_past_decision")) {
       return { enemyId: "shadow_past_decision", lines: getEncounterWarning("shadow_past_decision") };
     }
   }
 
-  if (er.zonesWithoutCardUse >= 3 && !state.defeatedEnemyIds.includes("hum_unnamed")) {
-    er.zonesWithoutCardUse = 0;
-    er.lastBattleNoCards = false;
+  if (er.zonesWithoutPressure >= 3 && !state.defeatedEnemyIds.includes("hum_unnamed")) {
+    er.zonesWithoutPressure = 0;
+    er.lastBattleNoPressure = false;
     return { enemyId: "hum_unnamed", lines: getEncounterWarning("hum_unnamed") };
   }
 
@@ -380,14 +380,18 @@ export function applyBattleEndToEncounters(state: GameState, s: BattleEndSummary
 
   if (s.endKind === "won") {
     er.zonesSinceBattle = 0;
-    if (s.hadAnyCardPlayed) {
-      er.zonesWithoutCardUse = 0;
-      er.lastBattleNoCards = false;
+    if (s.hadPressureResponse) {
+      er.zonesWithoutPressure = 0;
+      er.lastBattleNoPressure = false;
     } else {
-      er.lastBattleNoCards = true;
+      er.lastBattleNoPressure = true;
     }
 
     er.consecutiveWins += 1;
+    if (er.lastWinStyle === s.dominantStyle) er.sameStyleWinStreak += 1;
+    else er.sameStyleWinStreak = 1;
+    er.lastWinStyle = s.dominantStyle;
+
     if (
       er.consecutiveWins >= 3 &&
       !er.coalitionThreeWinsDone &&
@@ -405,10 +409,12 @@ export function applyBattleEndToEncounters(state: GameState, s: BattleEndSummary
 
     if (s.postAbsorption3) er.postBattleAbsorption3 = true;
     if (s.postAcceptance3) er.postBattleAcceptance3 = true;
-    if (s.postDiscard3) er.postBattleDiscard3 = true;
+    if (s.postWithdrawal3) er.postBattleWithdrawal3 = true;
   } else {
     er.consecutiveWins = 0;
     er.rematch = null;
+    er.sameStyleWinStreak = 0;
+    er.lastWinStyle = null;
 
     if (s.endKind === "lost") {
       if (!er.defeatComebackDone && s.enemyId !== "root_of_anxiety") {
