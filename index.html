@@ -4,18 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Тихая тропа</title>
+    <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="app">
-      <div class="game-shell">
-        <canvas id="world" width="320" height="240" aria-label="Мир игры"></canvas>
-        <div id="ui-root"></div>
-      </div>
-      <p class="hint">
-        В начале — пролог и развилка. Ход: WASD / стрелки · E у отшельника: диалог · E у тени на тропе: бой с
-        «Гулом» (первые внутренние опоры) · В бою: стойка, «Конец хода», I — список опор
-      </p>
-    </div>
+    <div id="game-container"></div>
+    <div id="ui-overlay"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
