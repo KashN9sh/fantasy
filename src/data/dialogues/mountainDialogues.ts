@@ -31,7 +31,7 @@ export const hermitMountain: DialogueTree = {
       id: 'hard',
       speaker: 'Отшельник',
       text: 'Конечно трудно. Лёгкий подъём — не подъём. Но ты поднялся. Запомни это ощущение: «было трудно, и я смог». Оно пригодится.',
-      setFlag: 'hermit-mountain-met',
+      setFlag: 'hermit-q3-done',
       diaryEntry: {
         id: 'hermit-mountain',
         title: 'Отшельник у источника',
@@ -42,7 +42,7 @@ export const hermitMountain: DialogueTree = {
       id: 'quiet',
       speaker: 'Отшельник',
       text: 'Тише — но не тихо. И не станет. Тишина — не цель. Цель — научиться слышать себя сквозь шум. И ты учишься.',
-      setFlag: 'hermit-mountain-met',
+      setFlag: 'hermit-q3-done',
       diaryEntry: {
         id: 'hermit-mountain',
         title: 'Отшельник у источника',

@@ -32,6 +32,7 @@ export const veraGrove: DialogueTree = {
       speaker: 'Вера',
       text: 'Бояться — нормально. Я тоже боюсь. Но заблудиться — это не конец. Это просто... ещё не нашёл. Находить — интереснее, чем знать заранее.',
       effects: { selfKnowledge: 5 },
+      setFlag: 'vera-met',
       diaryEntry: {
         id: 'vera-grove-met',
         title: 'Вера в тумане',
@@ -43,6 +44,7 @@ export const veraGrove: DialogueTree = {
       speaker: 'Вера',
       text: 'Вот, смотри. Видишь — тут линии обрываются? Это не ошибки. Это места, где я ещё не была. Белые пятна — самое интересное на карте.',
       effects: { selfKnowledge: 3 },
+      setFlag: 'vera-met',
       diaryEntry: {
         id: 'vera-grove-met',
         title: 'Вера в тумане',

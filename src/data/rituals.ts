@@ -129,7 +129,7 @@ export const rituals: Record<string, RitualDef> = {
     ],
     reward: {
       effects: { care: 10, acceptance: 5 },
-      setFlag: 'ritual-garden-done',
+      setFlag: 'raya-planted',
       diaryEntry: {
         id: 'ritual-garden',
         title: 'Общинный сад',
@@ -151,7 +151,7 @@ export const rituals: Record<string, RitualDef> = {
     ],
     reward: {
       effects: { acceptance: 12, selfKnowledge: 8 },
-      setFlag: 'ritual-memory-done',
+      setFlag: 'stone-released',
       diaryEntry: {
         id: 'ritual-memory',
         title: 'Камень в реке',
@@ -195,7 +195,7 @@ export const rituals: Record<string, RitualDef> = {
     ],
     reward: {
       effects: { selfKnowledge: 15, acceptance: 8 },
-      setFlag: 'ritual-truth-done',
+      setFlag: 'truth-seen',
       diaryEntry: {
         id: 'ritual-truth',
         title: 'Лужа правды',

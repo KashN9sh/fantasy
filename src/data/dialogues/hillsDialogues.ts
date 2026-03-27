@@ -31,7 +31,7 @@ export const hermitHills: DialogueTree = {
       id: 'distinguish',
       speaker: 'Отшельник',
       text: 'Свои — тёплые. Даже когда тревожные. Чужие — холодные, с привкусом «должен». Если голос говорит «ты должен» — спроси: кому?',
-      setFlag: 'hermit-hills-met',
+      setFlag: 'hermit-q2-done',
       diaryEntry: {
         id: 'hermit-hills',
         title: 'Отшельник на холмах',
@@ -42,7 +42,7 @@ export const hermitHills: DialogueTree = {
       id: 'silence-wind',
       speaker: 'Отшельник',
       text: 'Нет. Ветер не замолчит. Но можно научиться слушать сквозь него. Как музыкант слышит мелодию сквозь шум зала.',
-      setFlag: 'hermit-hills-met',
+      setFlag: 'hermit-q2-done',
       diaryEntry: {
         id: 'hermit-hills',
         title: 'Отшельник на холмах',
@@ -83,8 +83,8 @@ export const solHills: DialogueTree = {
       id: 'light',
       speaker: 'Сол',
       text: '...Фонарик загорается. Маленький, тёплый. Один из многих — но именно он сейчас важнее всех.',
-      setFlag: 'sol-lantern',
-      addItem: 'lit-lantern',
+      setFlag: 'sol-lit',
+      addItem: 'sol-lantern',
       diaryEntry: {
         id: 'sol-met',
         title: 'Фонарик Сола',
@@ -95,8 +95,8 @@ export const solHills: DialogueTree = {
       id: 'self',
       speaker: 'Сол',
       text: 'Конечно можно. Знаешь, «для себя» — это не эгоизм. Это... начало. Нельзя освещать дорогу другим, стоя в темноте.',
-      setFlag: 'sol-lantern',
-      addItem: 'lit-lantern',
+      setFlag: 'sol-lit',
+      addItem: 'sol-lantern',
       diaryEntry: {
         id: 'sol-met',
         title: 'Фонарик для себя',
@@ -141,7 +141,7 @@ export const markHills: DialogueTree = {
       id: 'name',
       speaker: 'Звездочёт Марк',
       text: 'Хм, зачем? Она и без имени — настоящая. Но если тебе станет легче — назови. Только не «красивым» именем. Назови чем-то, что чувствуешь прямо сейчас.',
-      setFlag: 'mark-star-named',
+      setFlag: 'star-named',
       diaryEntry: {
         id: 'mark-met',
         title: 'Звезда без имени',

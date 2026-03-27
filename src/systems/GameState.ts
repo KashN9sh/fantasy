@@ -8,6 +8,9 @@ export interface GameStateData {
   diaryEntries: DiaryEntry[];
   inventory: string[];
   questStates: Record<string, QuestState>;
+  questPhases: Record<string, string>;
+  questPhaseStartedAt: Record<string, number>;
+  transitionCount: number;
 }
 
 export interface DiaryEntry {
@@ -30,6 +33,9 @@ function createDefault(): GameStateData {
     diaryEntries: [],
     inventory: [],
     questStates: {},
+    questPhases: {},
+    questPhaseStartedAt: {},
+    transitionCount: 0,
   };
 }
 
@@ -52,6 +58,10 @@ export const GameState = {
     return state.flags[key] === true;
   },
 
+  removeFlag(key: string): void {
+    delete state.flags[key];
+  },
+
   adjust(param: 'acceptance' | 'care' | 'selfKnowledge' | 'trust', delta: number): void {
     state[param] = Math.max(0, Math.min(100, state[param] + delta));
   },
@@ -67,6 +77,10 @@ export const GameState = {
     }
   },
 
+  removeItem(itemId: string): void {
+    state.inventory = state.inventory.filter(i => i !== itemId);
+  },
+
   hasItem(itemId: string): boolean {
     return state.inventory.includes(itemId);
   },
@@ -77,6 +91,25 @@ export const GameState = {
 
   getQuestState(questId: string): QuestState {
     return state.questStates[questId] ?? 'unknown';
+  },
+
+  getQuestPhase(questId: string): string {
+    return state.questPhases[questId] ?? 'inactive';
+  },
+
+  setQuestPhase(questId: string, phase: string): void {
+    state.questPhases[questId] = phase;
+    state.questPhaseStartedAt[questId] = state.transitionCount;
+  },
+
+  getQuestPhaseAge(questId: string): number {
+    const startedAt = state.questPhaseStartedAt[questId];
+    if (startedAt === undefined) return 0;
+    return state.transitionCount - startedAt;
+  },
+
+  incrementTransitionCount(): void {
+    state.transitionCount++;
   },
 
   applyEffects(effects: Partial<GameStateData>): void {

@@ -6,6 +6,7 @@ import { iraMeadow } from './iraMeadow';
 import { veraGrove } from './veraGrove';
 import { fedyaGrove } from './fedyaGrove';
 import { milaVillage, yarikVillage, tomVillage } from './villageDialogues';
+import { kostyaVillage, polinaVillage, rayaVillage } from './villageExtraDialogues';
 import { linRiver, tikhonRiver } from './riverDialogues';
 import { hermitHills, solHills, markHills } from './hillsDialogues';
 import { ninaMirrors } from './mirrorDialogues';
@@ -22,6 +23,9 @@ const dialogues: Record<string, DialogueTree> = {
   'mila-village': milaVillage,
   'yarik-village': yarikVillage,
   'tom-village': tomVillage,
+  'kostya-village': kostyaVillage,
+  'polina-village': polinaVillage,
+  'raya-village': rayaVillage,
   'lin-river': linRiver,
   'tikhon-river': tikhonRiver,
   'hermit-hills': hermitHills,

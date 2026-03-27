@@ -69,7 +69,7 @@ export const hermitIntro: DialogueTree = {
       id: 'advice',
       speaker: 'Отшельник',
       text: 'Впереди — Тихий Луг. Там есть те, кто ждёт попутчика. И ещё — если увидишь что-то увядшее, не проходи мимо. Забота возвращается.',
-      setFlag: 'hermit-intro-done',
+      setFlag: 'hermit-q1-done',
     },
   ],
 };

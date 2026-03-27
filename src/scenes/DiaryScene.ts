@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SCENE_KEYS } from '../config';
 import { GameState } from '../systems/GameState';
+import { QuestManager } from '../systems/QuestManager';
 
 interface DiarySceneData {
   returnScene: string;
@@ -40,6 +41,23 @@ export class DiaryScene extends Phaser.Scene {
       <div>Самопознание: ${state.selfKnowledge} · Доверие: ${state.trust}</div>
     `;
     panel.appendChild(stats);
+
+    const active = QuestManager.getActiveQuests();
+    if (active.length > 0) {
+      const qSection = document.createElement('div');
+      qSection.className = 'diary-entry';
+      const qTitle = document.createElement('div');
+      qTitle.className = 'entry-title';
+      qTitle.textContent = 'Текущие задачи';
+      qSection.appendChild(qTitle);
+      active.forEach(q => {
+        const line = document.createElement('div');
+        const desc = QuestManager.getPhaseDescription(q.id);
+        line.textContent = `· ${q.title}${desc ? ' — ' + desc : ''}`;
+        qSection.appendChild(line);
+      });
+      panel.appendChild(qSection);
+    }
 
     if (state.inventory.length > 0) {
       const inv = document.createElement('div');

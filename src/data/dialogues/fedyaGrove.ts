@@ -23,6 +23,7 @@ export const fedyaGrove: DialogueTree = {
       id: 'not-lost',
       speaker: 'Почтальон Федя',
       text: 'Тот, кто «кажется» — точно заблудился. Не в плохом смысле! Просто ещё в пути. Вот, возьми.',
+      setFlag: 'fedya-met',
       next: 'read-letter',
     },
     {

@@ -9,7 +9,19 @@ import { getLevel } from '../levels/registry';
 import { GameState } from '../systems/GameState';
 import { SaveManager } from '../systems/SaveManager';
 import { QuestManager } from '../systems/QuestManager';
-import { mainQuests } from '../data/quests/mainQuests';
+import { allQuests } from '../data/quests/allQuests';
+
+const LEVEL_ENTRY_FLAGS: Record<string, string[]> = {
+  threshold: ['entered-threshold'],
+  quietMeadow: ['entered-threshold'],
+  foggyGrove: ['entered-foggy-grove'],
+  fireflyVillage: ['entered-firefly-village'],
+  quietRiver: ['entered-quiet-river'],
+  whisperHills: ['entered-whisper-hills'],
+  mirrorGrove: ['entered-mirror-grove'],
+  mountainPath: ['entered-mountain-path'],
+  gardenOfSilence: ['entered-garden'],
+};
 
 export class WorldScene extends Phaser.Scene {
   private player!: Player;
@@ -31,7 +43,7 @@ export class WorldScene extends Phaser.Scene {
     const levelId = data.levelId ?? GameState.get().currentLevel;
     this.currentLevel = getLevel(levelId);
     GameState.get().currentLevel = levelId;
-    QuestManager.registerAll(mainQuests);
+    QuestManager.registerAll(allQuests);
   }
 
   create(): void {
@@ -67,15 +79,22 @@ export class WorldScene extends Phaser.Scene {
     this.events.on('resume', () => {
       this.overlayActive = false;
       this.player.unfreeze();
-      this.checkQuests();
+      this.activateQuestsByFlags();
+      QuestManager.checkAllProgress();
       this.checkEnding();
     });
 
     this.addFogEffect(level);
     this.addParticles();
     this.addControlsHint();
-
     this.addLevelNameDisplay(level.name);
+
+    const entryFlags = LEVEL_ENTRY_FLAGS[level.id];
+    if (entryFlags) {
+      entryFlags.forEach(f => GameState.setFlag(f));
+    }
+    this.activateQuestsByFlags();
+    QuestManager.checkAllProgress();
   }
 
   update(time: number, delta: number): void {
@@ -116,6 +135,8 @@ export class WorldScene extends Phaser.Scene {
 
     level.interactables.forEach(def => {
       if (def.conditionFlag && !GameState.hasFlag(def.conditionFlag)) return;
+      if (def.conditionNotFlag && GameState.hasFlag(def.conditionNotFlag)) return;
+      if (!QuestManager.isInteractableVisible(def.questVisibility)) return;
 
       if (def.type === 'npc') {
         const npc = new NPC(this, def, level.groundLine);
@@ -171,17 +192,26 @@ export class WorldScene extends Phaser.Scene {
     this.overlayActive = true;
     this.player.freeze();
 
+    if (def.setFlagOnInteract) GameState.setFlag(def.setFlagOnInteract);
+    if (def.addItemOnInteract) GameState.addItem(def.addItemOnInteract);
+
     switch (def.type) {
-      case 'npc':
-        if (def.dialogueId) {
+      case 'npc': {
+        const questDialogue = QuestManager.getDialogueForNpc(def.id);
+        const dialogueId = questDialogue ?? def.dialogueId;
+        if (dialogueId) {
           this.scene.launch(SCENE_KEYS.DIALOGUE, {
-            dialogueId: def.dialogueId,
+            dialogueId,
             speakerName: def.name,
             returnScene: SCENE_KEYS.WORLD,
           });
           this.scene.pause();
+        } else {
+          this.overlayActive = false;
+          this.player.unfreeze();
         }
         break;
+      }
 
       case 'examine':
         this.scene.launch(SCENE_KEYS.DIALOGUE, {
@@ -204,6 +234,7 @@ export class WorldScene extends Phaser.Scene {
 
       case 'transition':
         if (def.targetLevel) {
+          QuestManager.onTransition();
           SaveManager.save();
           this.cameras.main.fadeOut(400, 0, 0, 0);
           this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -244,15 +275,6 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
-  private checkQuests(): void {
-    const state = GameState.get();
-    Object.keys(state.questStates).forEach(qid => {
-      if (state.questStates[qid] === 'active') {
-        QuestManager.checkProgress(qid);
-      }
-    });
-  }
-
   private addFogEffect(level: LevelData): void {
     const fogColor = Phaser.Display.Color.HexStringToColor(level.palette.fog);
     const fog = this.add.rectangle(
@@ -277,7 +299,9 @@ export class WorldScene extends Phaser.Scene {
     if (this.currentLevel.id !== 'gardenOfSilence') return;
     const hasEnding = GameState.hasFlag('ending-acceptance')
       || GameState.hasFlag('ending-seeking')
-      || GameState.hasFlag('ending-connection');
+      || GameState.hasFlag('ending-connection')
+      || GameState.hasFlag('ending-care')
+      || GameState.hasFlag('ending-trust');
     const hasPlanted = GameState.hasFlag('ritual-plant-done');
 
     if (hasEnding || hasPlanted) {
@@ -335,6 +359,45 @@ export class WorldScene extends Phaser.Scene {
         GameState.setFlag('controls-shown');
       },
     });
+  }
+
+  private activateQuestsByFlags(): void {
+    const triggers: [string, string][] = [
+      ['vera-met', 'vera-map'],
+      ['lin-tree-heard', 'lin-tree'],
+      ['mila-met', 'mila-tea'],
+      ['tom-try-wind', 'tom-melody'],
+      ['tom-try-fire', 'tom-melody'],
+      ['tom-try-note', 'tom-melody'],
+      ['fedya-met', 'fedya-letter'],
+      ['kostya-bread-given', 'kostya-bread'],
+      ['anchor-forged', 'yarik-anchor'],
+      ['polina-quest-given', 'polina-book'],
+      ['raya-offered', 'raya-garden'],
+      ['star-named', 'mark-star'],
+      ['nina-met', 'nina-thread'],
+    ];
+    for (const [flag, questId] of triggers) {
+      if (GameState.hasFlag(flag)) {
+        QuestManager.activate(questId);
+      }
+    }
+
+    const levelQuests: Record<string, string[]> = {
+      threshold: ['chapter-1'],
+      quietMeadow: ['chapter-1'],
+      foggyGrove: ['chapter-2'],
+      fireflyVillage: ['chapter-3'],
+      quietRiver: ['chapter-4'],
+      whisperHills: ['chapter-5'],
+      mirrorGrove: ['chapter-6'],
+      mountainPath: ['chapter-7'],
+      gardenOfSilence: ['chapter-8'],
+    };
+    const chapterQuests = levelQuests[this.currentLevel.id];
+    if (chapterQuests) {
+      chapterQuests.forEach(q => QuestManager.activate(q));
+    }
   }
 
   private cleanup(): void {

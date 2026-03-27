@@ -28,6 +28,16 @@ export const threshold: LevelData = {
   ],
   interactables: [
     {
+      id: 'gate',
+      type: 'examine',
+      x: 120,
+      spriteKey: 'object',
+      name: 'Калитка',
+      examineText: '«Кто идёт — тот уже начал.» Калитка не заперта.',
+      setFlagOnInteract: 'gate-opened',
+      conditionNotFlag: 'gate-opened',
+    },
+    {
       id: 'old-lantern',
       type: 'examine',
       x: 200,
@@ -50,6 +60,16 @@ export const threshold: LevelData = {
       spriteKey: 'object',
       name: 'Скамейка у ручья',
       ritualId: 'breathing',
+    },
+    {
+      id: 'wild-mint-bench',
+      type: 'examine',
+      x: 950,
+      spriteKey: 'object',
+      name: 'Мята у скамейки',
+      examineText: 'Пучок дикой мяты у скамейки. Свежая, пахучая. Ты берёшь его.',
+      addItemOnInteract: 'wild-mint',
+      questVisibility: { questId: 'mila-tea', phases: ['gathering', 'expired-tired'] },
     },
     {
       id: 'vera',

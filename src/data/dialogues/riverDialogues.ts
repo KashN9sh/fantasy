@@ -31,7 +31,7 @@ export const linRiver: DialogueTree = {
       id: 'beautiful',
       speaker: 'Лин',
       text: 'Именно. Забота — не про результат. Она про процесс. Про то, что ты пришёл с лейкой, хотя мог не прийти.',
-      setFlag: 'lin-river-met',
+      setFlag: 'lin-tree-heard',
       diaryEntry: {
         id: 'lin-river',
         title: 'Лин и сухое дерево',
@@ -42,7 +42,7 @@ export const linRiver: DialogueTree = {
       id: 'let-go',
       speaker: 'Лин',
       text: 'Может. Но отпустить — не значит перестать любить. Я поливаю не потому, что оно оживёт. А потому, что помню, каким оно было.',
-      setFlag: 'lin-river-met',
+      setFlag: 'lin-tree-heard',
       effects: { selfKnowledge: 5 },
       diaryEntry: {
         id: 'lin-river',

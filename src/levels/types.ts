@@ -1,3 +1,5 @@
+import type { InteractableVisibility } from '../systems/QuestManager';
+
 export interface GroundPoint {
   x: number;
   y: number;
@@ -18,7 +20,11 @@ export interface InteractableDef {
   ritualId?: string;
   targetLevel?: string;
   examineText?: string;
+  setFlagOnInteract?: string;
+  addItemOnInteract?: string;
   conditionFlag?: string;
+  conditionNotFlag?: string;
+  questVisibility?: InteractableVisibility;
 }
 
 export interface PaletteConfig {

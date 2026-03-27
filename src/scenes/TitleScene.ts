@@ -3,7 +3,7 @@ import { SCENE_KEYS, CANVAS_W, CANVAS_H } from '../config';
 import { SaveManager } from '../systems/SaveManager';
 import { GameState } from '../systems/GameState';
 import { QuestManager } from '../systems/QuestManager';
-import { mainQuests } from '../data/quests/mainQuests';
+import { allQuests } from '../data/quests/allQuests';
 
 export class TitleScene extends Phaser.Scene {
   constructor() {
@@ -88,14 +88,14 @@ export class TitleScene extends Phaser.Scene {
   private startNewGame(): void {
     GameState.reset();
     SaveManager.deleteSave();
-    QuestManager.registerAll(mainQuests);
-    QuestManager.activate('chapter-1-threshold');
+    QuestManager.registerAll(allQuests);
+    QuestManager.activate('chapter-1');
     this.fadeToWorld('threshold');
   }
 
   private startContinue(): void {
     SaveManager.load();
-    QuestManager.registerAll(mainQuests);
+    QuestManager.registerAll(allQuests);
     const levelId = GameState.get().currentLevel;
     this.fadeToWorld(levelId);
   }

@@ -65,16 +65,19 @@ export const hermitGarden: DialogueTree = {
           text: 'Тревога осталась. Но я научился с ней дышать.',
           next: 'breathe',
           effects: { acceptance: 15 },
+          setFlag: 'ending-acceptance',
         },
         {
           text: 'Я не уверен, что нашёл ответ.',
           next: 'no-answer',
           effects: { selfKnowledge: 15 },
+          setFlag: 'ending-seeking',
         },
         {
           text: 'Спасибо, что был на тропе.',
           next: 'thanks',
           effects: { trust: 15, care: 10 },
+          setFlag: 'ending-connection',
         },
       ],
     },
@@ -82,7 +85,7 @@ export const hermitGarden: DialogueTree = {
       id: 'breathe',
       speaker: 'Отшельник',
       text: 'Дышать с тревогой — это и есть ответ. Не победа, не проигрыш. Просто — жизнь. И она стоит того, чтобы продолжать.',
-      setFlag: 'ending-acceptance',
+      setFlag: 'hermit-q4-done',
       diaryEntry: {
         id: 'hermit-final',
         title: 'Последний разговор',
@@ -93,7 +96,7 @@ export const hermitGarden: DialogueTree = {
       id: 'no-answer',
       speaker: 'Отшельник',
       text: 'Ответ — не обязательно слово. Иногда ответ — это то, что ты здесь стоишь и задаёшь вопрос. Это уже — много.',
-      setFlag: 'ending-seeking',
+      setFlag: 'hermit-q4-done',
       diaryEntry: {
         id: 'hermit-final',
         title: 'Последний разговор',
@@ -104,7 +107,7 @@ export const hermitGarden: DialogueTree = {
       id: 'thanks',
       speaker: 'Отшельник',
       text: 'Я не был на тропе. Я — часть тропы. Как ты теперь. Как все, кто прошёл. Тропа — это мы.',
-      setFlag: 'ending-connection',
+      setFlag: 'hermit-q4-done',
       diaryEntry: {
         id: 'hermit-final',
         title: 'Последний разговор',
