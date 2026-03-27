@@ -25,12 +25,22 @@ export const fireflyVillage: LevelData = {
   ],
   interactables: [
     {
-      id: 'glasha-teahouse',
-      type: 'ritual',
+      id: 'glasha',
+      type: 'npc',
       x: 400,
+      spriteKey: 'npc',
+      name: 'Бабушка Глаша',
+      dialogueId: 'glasha-teahouse',
+    },
+    {
+      id: 'glasha-tea-ritual',
+      type: 'ritual',
+      x: 440,
       spriteKey: 'object',
-      name: 'Чайная бабушки Глаши',
+      name: 'Чашка чая',
       ritualId: 'tea-silence',
+      conditionFlag: 'glasha-tea-accepted',
+      conditionNotFlag: 'ritual-tea-done',
     },
     {
       id: 'mila',
@@ -87,6 +97,15 @@ export const fireflyVillage: LevelData = {
       spriteKey: 'object',
       name: 'Общинный сад',
       ritualId: 'garden-care',
+    },
+    {
+      id: 'village-cat',
+      type: 'examine',
+      x: 3200,
+      spriteKey: 'npc',
+      name: 'Рыжий кот',
+      examineText: 'Рыжий кот сидит на бочке у пекарни. Мурчит. Узнал тебя.',
+      conditionFlag: 'cat-trusted',
     },
     {
       id: 'exit-to-river',

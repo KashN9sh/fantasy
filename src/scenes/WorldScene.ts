@@ -9,6 +9,7 @@ import { getLevel } from '../levels/registry';
 import { GameState } from '../systems/GameState';
 import { SaveManager } from '../systems/SaveManager';
 import { QuestManager } from '../systems/QuestManager';
+import { AudioManager } from '../systems/AudioManager';
 import { allQuests } from '../data/quests/allQuests';
 
 const LEVEL_ENTRY_FLAGS: Record<string, string[]> = {
@@ -51,6 +52,9 @@ export class WorldScene extends Phaser.Scene {
     this.currentOverlap = null;
 
     const level = this.currentLevel;
+
+    AudioManager.init(this);
+    AudioManager.crossfadeTo(`amb-${level.id}`);
 
     this.cameras.main.fadeIn(500);
     this.cameras.main.setBackgroundColor(level.palette.bg);
@@ -236,6 +240,7 @@ export class WorldScene extends Phaser.Scene {
         if (def.targetLevel) {
           QuestManager.onTransition();
           SaveManager.save();
+          AudioManager.stopAmbience(400);
           this.cameras.main.fadeOut(400, 0, 0, 0);
           this.cameras.main.once('camerafadeoutcomplete', () => {
             this.cleanup();
@@ -376,6 +381,7 @@ export class WorldScene extends Phaser.Scene {
       ['raya-offered', 'raya-garden'],
       ['star-named', 'mark-star'],
       ['nina-met', 'nina-thread'],
+      ['zoya-dew-started', 'zoya-dew'],
     ];
     for (const [flag, questId] of triggers) {
       if (GameState.hasFlag(flag)) {

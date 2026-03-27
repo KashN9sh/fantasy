@@ -8,6 +8,7 @@ export class BootScene extends Phaser.Scene {
 
   preload(): void {
     this.generatePlaceholderTextures();
+    this.loadAudio();
   }
 
   create(): void {
@@ -39,6 +40,26 @@ export class BootScene extends Phaser.Scene {
     this.generateParallaxLayers(g);
 
     g.destroy();
+  }
+
+  private loadAudio(): void {
+    const ambience: Record<string, string> = {
+      threshold: 'mp3', quietMeadow: 'ogg', foggyGrove: 'mp3',
+      fireflyVillage: 'ogg', quietRiver: 'ogg', whisperHills: 'ogg',
+      mirrorGrove: 'mp3', mountainPath: 'ogg', gardenOfSilence: 'ogg',
+    };
+    for (const [id, ext] of Object.entries(ambience)) {
+      this.load.audio(`amb-${id}`, `assets/audio/ambience/${id}.${ext}`);
+    }
+
+    this.load.audio('ui-open', 'assets/audio/ui/ui-open.wav');
+    this.load.audio('ui-select', 'assets/audio/ui/ui-select.wav');
+    this.load.audio('ui-close', 'assets/audio/ui/ui-close.wav');
+
+    this.load.audio('ritual-water', 'assets/audio/ritual/ritual-water.ogg');
+    this.load.audio('ritual-breath', 'assets/audio/ritual/ritual-breath.wav');
+    this.load.audio('ritual-fire', 'assets/audio/ritual/ritual-fire.wav');
+    this.load.audio('ritual-wind', 'assets/audio/ritual/ritual-wind.wav');
   }
 
   private generateParallaxLayers(g: Phaser.GameObjects.Graphics): void {

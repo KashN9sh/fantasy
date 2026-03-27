@@ -109,6 +109,15 @@ export const gardenOfSilence: LevelData = {
       dialogueId: 'hermit-garden',
     },
     {
+      id: 'garden-cat',
+      type: 'examine',
+      x: 1700,
+      spriteKey: 'npc',
+      name: 'Рыжий кот',
+      examineText: 'Рыжий кот лежит в тёплом пятне света. Мурчит. Тебе не нужно ничего делать — он уже знает, что ты рядом.',
+      conditionFlag: 'cat-trusted',
+    },
+    {
       id: 'empty-plot',
       type: 'ritual',
       x: 1900,

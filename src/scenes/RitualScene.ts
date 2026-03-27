@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENE_KEYS } from '../config';
 import { RitualEngine, RitualStep } from '../systems/RitualEngine';
 import { getRitual } from '../data/rituals';
+import { AudioManager } from '../systems/AudioManager';
 
 interface RitualSceneData {
   ritualId: string;
@@ -34,6 +35,9 @@ export class RitualScene extends Phaser.Scene {
     this.container = document.createElement('div');
     this.container.className = 'ritual-overlay';
     this.overlay.appendChild(this.container);
+
+    const soundKey = this.engine.getSoundKey();
+    if (soundKey) AudioManager.playRitualLoop(soundKey);
 
     const step = this.engine.getCurrentStep();
     if (step) {
@@ -138,6 +142,7 @@ export class RitualScene extends Phaser.Scene {
   }
 
   private close(): void {
+    AudioManager.stopRitualLoop();
     this.overlay.classList.remove('active');
     this.overlay.innerHTML = '';
     this.scene.resume(this.returnScene);

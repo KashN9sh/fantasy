@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENE_KEYS } from '../config';
 import { DialogueEngine, DialogueNode } from '../systems/DialogueEngine';
 import { getDialogue } from '../data/dialogues/index';
+import { AudioManager } from '../systems/AudioManager';
 
 interface DialogueSceneData {
   dialogueId?: string;
@@ -51,6 +52,7 @@ export class DialogueScene extends Phaser.Scene {
     this.box.className = 'dialogue-box';
     this.overlay.appendChild(this.box);
 
+    AudioManager.playUiSound('ui-open');
     this.advanceKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
 
     const node = this.engine.getCurrent();
@@ -122,6 +124,7 @@ export class DialogueScene extends Phaser.Scene {
   }
 
   private selectChoice(index: number): void {
+    AudioManager.playUiSound('ui-select');
     const next = this.engine.advance(index);
     if (next) {
       this.renderNode(next);
@@ -140,6 +143,7 @@ export class DialogueScene extends Phaser.Scene {
   }
 
   private closeDialogue(): void {
+    AudioManager.playUiSound('ui-close');
     this.overlay.classList.remove('active');
     this.overlay.innerHTML = '';
     this.scene.resume(this.returnScene);

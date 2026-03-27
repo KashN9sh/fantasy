@@ -12,6 +12,8 @@ import { hermitHills, solHills, markHills } from './hillsDialogues';
 import { ninaMirrors } from './mirrorDialogues';
 import { hermitMountain } from './mountainDialogues';
 import { veraGarden, linGarden, hermitGarden } from './gardenDialogues';
+import { glashaTeahouse, glashaReturn } from './glashaDialogues';
+import { zoyaMirrors, zoyaGathering, zoyaComplete, zoyaExpired } from './zoyaDialogues';
 
 const dialogues: Record<string, DialogueTree> = {
   'hermit-intro': hermitIntro,
@@ -36,6 +38,12 @@ const dialogues: Record<string, DialogueTree> = {
   'vera-garden': veraGarden,
   'lin-garden': linGarden,
   'hermit-garden': hermitGarden,
+  'glasha-teahouse': glashaTeahouse,
+  'glasha-return': glashaReturn,
+  'zoya-mirrors': zoyaMirrors,
+  'zoya-gathering': zoyaGathering,
+  'zoya-complete': zoyaComplete,
+  'zoya-expired': zoyaExpired,
 };
 
 export function getDialogue(id: string): DialogueTree | null {

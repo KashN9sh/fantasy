@@ -5,6 +5,7 @@ export const rituals: Record<string, RitualDef> = {
     id: 'breathing',
     name: 'Дыхание у ручья',
     instruction: 'Сядь на скамейку. Прислушайся к воде. Дыши.',
+    soundKey: 'ritual-breath',
     steps: [
       { text: 'Закрой глаза... (подожди)', action: 'wait', duration: 2000 },
       { text: 'Вдох... (нажми E)', action: 'press-e' },
@@ -29,6 +30,7 @@ export const rituals: Record<string, RitualDef> = {
     id: 'watering',
     name: 'Полив увядшего цветка',
     instruction: 'Цветок поник. Может, ему нужна вода?',
+    soundKey: 'ritual-water',
     steps: [
       { text: 'Ты набираешь воды из ручья...', action: 'wait', duration: 1500 },
       { text: 'Аккуратно поливаешь корни... (нажми E)', action: 'press-e' },
@@ -52,6 +54,7 @@ export const rituals: Record<string, RitualDef> = {
     id: 'flower-gathering',
     name: 'Сбор полевых цветов',
     instruction: 'Поляна полна цветов. Собери небольшой букет — не торопись.',
+    soundKey: 'ritual-wind',
     steps: [
       { text: 'Ты наклоняешься к цветам...', action: 'wait', duration: 1500 },
       { text: 'Первый цветок — голубой, как утреннее небо. (нажми E)', action: 'press-e' },
@@ -97,6 +100,7 @@ export const rituals: Record<string, RitualDef> = {
     id: 'tea-silence',
     name: 'Чай в тишине',
     instruction: 'Бабушка Глаша заварит то, что нужно. Просто держи чашку.',
+    soundKey: 'ritual-fire',
     steps: [
       { text: 'Глаша смотрит на тебя и кивает...', action: 'wait', duration: 1500 },
       { text: 'Чайник закипает. Запах трав наполняет комнату.', action: 'wait', duration: 2000 },
@@ -142,6 +146,7 @@ export const rituals: Record<string, RitualDef> = {
     id: 'memory-stone',
     name: 'Камень памяти',
     instruction: 'Напиши на камне то, что хочешь отпустить, и положи в воду.',
+    soundKey: 'ritual-water',
     steps: [
       { text: 'Ты берёшь гладкий камень...', action: 'wait', duration: 1500 },
       { text: 'Что ты хочешь отпустить? (подумай)', action: 'wait', duration: 3000 },
@@ -164,6 +169,7 @@ export const rituals: Record<string, RitualDef> = {
     id: 'wind-harp',
     name: 'Ветряная арфа',
     instruction: 'Послушай мелодию ветра. Она меняется.',
+    soundKey: 'ritual-wind',
     steps: [
       { text: 'Ветер играет на струнах...', action: 'wait', duration: 2000 },
       { text: 'Мелодия тихая. Колыбельная?', action: 'wait', duration: 2000 },
@@ -186,6 +192,7 @@ export const rituals: Record<string, RitualDef> = {
     id: 'truth-puddle',
     name: 'Лужа правды',
     instruction: 'Подожди, пока вода успокоится. Увидишь себя.',
+    soundKey: 'ritual-water',
     steps: [
       { text: 'Ты наклоняешься к луже...', action: 'wait', duration: 1500 },
       { text: 'Отражение мутное, нечёткое.', action: 'wait', duration: 2000 },
@@ -208,6 +215,7 @@ export const rituals: Record<string, RitualDef> = {
     id: 'echo-cave',
     name: 'Пещера эха',
     instruction: 'Скажи что-нибудь — и услышь себя трижды.',
+    soundKey: 'ritual-wind',
     steps: [
       { text: 'Ты входишь в пещеру. Тихо.', action: 'wait', duration: 1500 },
       { text: '...Говоришь: «Я здесь.» (нажми E)', action: 'press-e' },
@@ -245,6 +253,28 @@ export const rituals: Record<string, RitualDef> = {
         id: 'ritual-plant',
         title: 'Мой участок в Саду',
         text: 'Посадил семя в Саду Тишины. Не знаю, что вырастет. Но посадил.',
+      },
+    },
+  },
+  'cat-pet': {
+    id: 'cat-pet',
+    name: 'Рыжий кот',
+    instruction: 'Кот смотрит на тебя. Не двигайся — просто подожди.',
+    soundKey: 'ritual-breath',
+    steps: [
+      { text: 'Рыжий кот сидит в траве. Смотрит.', action: 'wait', duration: 1500 },
+      { text: 'Не подходи. Просто сядь рядом...', action: 'wait', duration: 3000 },
+      { text: 'Кот чуть поворачивает голову. Не уходит.', action: 'wait', duration: 2000 },
+      { text: 'Он подходит. Медленно. Осторожно.', action: 'wait', duration: 2000 },
+      { text: 'Ложится на колени. Мурчит.', action: 'press-e' },
+    ],
+    reward: {
+      effects: { care: 3 },
+      setFlag: 'cat-trusted',
+      diaryEntry: {
+        id: 'ritual-cat',
+        title: 'Рыжий кот',
+        text: 'Иногда нужно просто сесть и подождать. Кот мурчит. Мир не так плох.',
       },
     },
   },

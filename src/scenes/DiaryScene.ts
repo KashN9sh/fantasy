@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { SCENE_KEYS } from '../config';
 import { GameState } from '../systems/GameState';
 import { QuestManager } from '../systems/QuestManager';
+import { AudioManager } from '../systems/AudioManager';
 
 interface DiarySceneData {
   returnScene: string;
@@ -20,6 +21,7 @@ export class DiaryScene extends Phaser.Scene {
   }
 
   create(): void {
+    AudioManager.playUiSound('ui-open');
     this.overlay = document.getElementById('ui-overlay') as HTMLDivElement;
     this.overlay.classList.add('active');
     this.overlay.innerHTML = '';
@@ -109,6 +111,7 @@ export class DiaryScene extends Phaser.Scene {
   }
 
   private close(): void {
+    AudioManager.playUiSound('ui-close');
     this.overlay.classList.remove('active');
     this.overlay.innerHTML = '';
     this.scene.resume(this.returnScene);

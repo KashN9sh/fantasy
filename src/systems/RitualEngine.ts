@@ -4,6 +4,7 @@ export interface RitualDef {
   id: string;
   name: string;
   instruction: string;
+  soundKey?: string;
   steps: RitualStep[];
   reward: {
     effects?: Partial<{ acceptance: number; care: number; selfKnowledge: number; trust: number }>;
@@ -53,6 +54,10 @@ export class RitualEngine {
 
   getRitualName(): string {
     return this.ritual?.name ?? '';
+  }
+
+  getSoundKey(): string | undefined {
+    return this.ritual?.soundKey;
   }
 
   private complete(): void {

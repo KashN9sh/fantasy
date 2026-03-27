@@ -955,4 +955,73 @@ export const allQuests: QuestDef[] = [
       },
     ],
   },
+
+  {
+    id: 'zoya-dew',
+    title: 'Зеркальная роса',
+    description: 'Собрать зеркальную росу для Зои.',
+    phases: [
+      {
+        id: 'gathering',
+        description: 'Найти капли на зеркальных деревьях — только те, в которых видно небо.',
+        enterEffects: {
+          diaryEntry: {
+            id: 'zoya-dew-start',
+            title: 'Зеркальная роса',
+            text: 'Зоя просит собрать росу с деревьев. Нужны капли, в которых видно только небо.',
+          },
+        },
+        advanceWhen: { type: 'flag', flag: 'zoya-dew-collected' },
+        nextPhase: 'deliver',
+      },
+      {
+        id: 'deliver',
+        description: 'Вернуть росу Зое.',
+        advanceWhen: { type: 'flag', flag: 'zoya-dew-delivered' },
+        nextPhase: 'completed',
+      },
+      {
+        id: 'completed',
+        description: 'Роса собрана.',
+        enterEffects: {
+          params: { selfKnowledge: 5, acceptance: 3 },
+          addItems: ['zoya-tincture'],
+          diaryEntry: {
+            id: 'zoya-dew-complete',
+            title: 'Снадобье Зои',
+            text: 'Зоя приготовила снадобье из зеркальной росы. Я смотрел на деревья и видел небо.',
+          },
+        },
+      },
+      {
+        id: 'expired',
+        description: 'Зоя собрала росу сама.',
+        enterEffects: {
+          diaryEntry: {
+            id: 'zoya-dew-expired',
+            title: 'Зоя ушла',
+            text: 'Зоя собрала росу без меня. На месте — пузырёк и записка.',
+          },
+        },
+      },
+    ],
+    inactivity: [
+      {
+        phase: 'gathering',
+        limit: 3,
+        expiredPhase: 'expired',
+      },
+    ],
+    npcDialogues: [
+      {
+        npcId: 'zoya-apothecary',
+        routes: {
+          'gathering': 'zoya-gathering',
+          'deliver': 'zoya-gathering',
+          'completed': 'zoya-complete',
+          'expired': 'zoya-expired',
+        },
+      },
+    ],
+  },
 ];

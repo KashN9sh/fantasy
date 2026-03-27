@@ -51,6 +51,15 @@ export const quietMeadow: LevelData = {
       ritualId: 'flower-gathering',
     },
     {
+      id: 'stray-cat',
+      type: 'ritual',
+      x: 1800,
+      spriteKey: 'npc',
+      name: 'Рыжий кот',
+      ritualId: 'cat-pet',
+      conditionNotFlag: 'cat-trusted',
+    },
+    {
       id: 'ira',
       type: 'npc',
       x: 2200,
