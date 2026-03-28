@@ -12,6 +12,9 @@ namespace TikhayaTropa.Directors
         [SerializeField] Text introLine;
         [SerializeField] float lineDuration = 4f;
         [SerializeField] float fadeDuration = 1.2f;
+        [SerializeField] float secondLineHold = 2.8f;
+        [TextArea] [SerializeField] string secondLine =
+            "Серость за спиной растворяется. Впереди — свет, трава и деревянная калитка.";
 
         IEnumerator Start()
         {
@@ -32,6 +35,24 @@ namespace TikhayaTropa.Directors
 
             SetTextAlpha(introLine, 1f);
             yield return new WaitForSeconds(lineDuration * 0.65f);
+
+            for (var t = 0f; t < fadeDuration * 0.45f; t += Time.deltaTime)
+            {
+                var k = t / (fadeDuration * 0.45f);
+                SetTextAlpha(introLine, 1f - k);
+                yield return null;
+            }
+
+            introLine.text = secondLine;
+            SetTextAlpha(introLine, 0f);
+            for (var t = 0f; t < 0.9f; t += Time.deltaTime)
+            {
+                SetTextAlpha(introLine, Mathf.Clamp01(t / 0.7f));
+                yield return null;
+            }
+
+            SetTextAlpha(introLine, 1f);
+            yield return new WaitForSeconds(secondLineHold);
 
             for (var t = 0f; t < fadeDuration; t += Time.deltaTime)
             {

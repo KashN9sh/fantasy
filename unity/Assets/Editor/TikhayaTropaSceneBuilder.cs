@@ -61,7 +61,7 @@ namespace TikhayaTropa.EditorTools
 
             BuildTitleScene();
             BuildMeadowScene(input, playerSprite, npcSprite, catSprite, gateSprite, groundSprite);
-            BuildFogStubScene();
+            BuildFogStubScene(input, playerSprite, npcSprite, groundSprite, gateSprite);
 
             var title = AssetDatabase.LoadAssetAtPath<SceneAsset>($"{ScenesDir}/Title.unity");
             var meadow = AssetDatabase.LoadAssetAtPath<SceneAsset>($"{ScenesDir}/Meadow.unity");
@@ -189,12 +189,7 @@ namespace TikhayaTropa.EditorTools
             SoInt(wellEx, "optionalStatDelta", 2);
 
             var bench = NewTriggerZone("Bench", new Vector3(-2f, standY, 0f), new Vector2(1.8f, 0.8f));
-            var benchEx = bench.AddComponent<ExamineInteractable>();
-            SoText(benchEx, "prompt", "Скамейка под дубом");
-            SoText(benchEx, "examineText",
-                "На спинке стёртые надписи. Удаётся разобрать: «Я был здесь. Мне стало легче.»");
-            SoEnum(benchEx, "optionalStat", 0);
-            SoInt(benchEx, "optionalStatDelta", 1);
+            bench.AddComponent<BenchInscriptionsInteractable>();
 
             var hermit = NewSpriteObject("Hermit", npcS, new Vector3(6f, standY, 0f), Vector3.one);
             var htrig = hermit.AddComponent<BoxCollider2D>();
@@ -245,27 +240,117 @@ namespace TikhayaTropa.EditorTools
             EditorSceneManager.SaveScene(scene, $"{ScenesDir}/Meadow.unity");
         }
 
-        static void BuildFogStubScene()
+        static void BuildFogStubScene(InputActionAsset input, Sprite playerS, Sprite npcS, Sprite groundS, Sprite gateS)
         {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-            var camGo = GameObject.FindGameObjectWithTag("MainCamera");
-            if (camGo != null)
-            {
-                var cam = camGo.GetComponent<Camera>();
-                if (cam != null)
-                {
-                    cam.orthographic = true;
-                    cam.clearFlags = CameraClearFlags.SolidColor;
-                    cam.backgroundColor = new Color(0.1f, 0.09f, 0.12f, 1f);
-                }
-            }
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            var canvas = NewCanvas("EndCanvas", 0);
-            var t = CreateUiText(canvas.transform, "EndText",
-                "Туманная роща ждёт в полной версии.\n\nКонец вертикального среза.", 26, TextAnchor.MiddleCenter, Vector2.zero);
-            t.color = new Color(0.9f, 0.88f, 0.8f);
-            CreateButton(canvas.transform, "ToTitle", "В меню", new Vector2(0, -120));
-            canvas.gameObject.AddComponent<FogStubReturn>();
+            var camGo = new GameObject("Main Camera");
+            camGo.tag = "MainCamera";
+            var cam = camGo.AddComponent<Camera>();
+            cam.orthographic = true;
+            cam.orthographicSize = 5.625f;
+            cam.backgroundColor = new Color(0.14f, 0.13f, 0.18f, 1f);
+            cam.useOcclusionCulling = false;
+            camGo.transform.position = new Vector3(0, 0, -10);
+            camGo.AddComponent<AudioListener>();
+            camGo.AddComponent<UniversalAdditionalCameraData>();
+            var ppc = camGo.AddComponent<UnityEngine.U2D.PixelPerfectCamera>();
+            ppc.refResolutionX = 320;
+            ppc.refResolutionY = 180;
+            ppc.assetsPPU = 16;
+            ppc.upscaleRT = true;
+            ppc.pixelSnapping = true;
+            camGo.AddComponent<CameraFollow2D>();
+
+            var lightGo = new GameObject("Global Light 2D");
+            var light2d = lightGo.AddComponent<Light2D>();
+            light2d.lightType = Light2D.LightType.Global;
+            light2d.intensity = 0.85f;
+            light2d.color = new Color(0.85f, 0.88f, 0.95f, 1f);
+
+            const float floorY = -1.15f;
+            const float floorHalfH = 0.21f;
+            var floorTop = floorY + floorHalfH;
+
+            var fogBack = NewSpriteObject("FogBackdrop", groundS, new Vector3(3f, 0.2f, 0f), new Vector3(26f, 12f, 1f), -15);
+            fogBack.GetComponent<SpriteRenderer>().color = new Color(0.5f, 0.52f, 0.58f, 1f);
+
+            var floorGo = new GameObject("Floor");
+            floorGo.transform.position = new Vector3(4f, floorY, 0f);
+            var floorBox = floorGo.AddComponent<BoxCollider2D>();
+            floorBox.size = new Vector2(52f, floorHalfH * 2f);
+
+            var groundVis = NewSpriteObject("FogGroundStrip", groundS, new Vector3(4f, floorY, 0f), new Vector3(13f, 0.2f, 1f), 0);
+            groundVis.GetComponent<SpriteRenderer>().color = new Color(0.55f, 0.58f, 0.5f, 1f);
+
+            var playerFeetY = floorTop + 0.425f;
+            var player = NewSpriteObject("Player", playerS, new Vector3(-7.5f, playerFeetY, 0f), Vector3.one);
+            player.tag = "Player";
+            var prb = player.AddComponent<Rigidbody2D>();
+            prb.gravityScale = 2.2f;
+            prb.constraints = RigidbodyConstraints2D.FreezeRotation;
+            prb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            prb.interpolation = RigidbodyInterpolation2D.Interpolate;
+            var pcol = player.AddComponent<BoxCollider2D>();
+            pcol.size = new Vector2(0.5f, 0.85f);
+            var pc = player.AddComponent<PlayerController>();
+            So(pc, "inputActions", input);
+            var pint = player.AddComponent<PlayerInteraction>();
+            So(pint, "inputActions", input);
+
+            var standY = floorTop + 0.425f;
+
+            var sign = NewSpriteObject("LostSignpost", gateS, new Vector3(-3f, standY, 0f), new Vector3(0.5f, 1.05f, 1f), 5);
+            var sbox = sign.AddComponent<BoxCollider2D>();
+            sbox.isTrigger = true;
+            sbox.size = new Vector2(0.55f, 1.35f);
+            sign.AddComponent<LostSignpostInteractable>();
+            var calmGo = new GameObject("CalmZone");
+            calmGo.transform.SetParent(sign.transform, false);
+            calmGo.transform.localPosition = Vector3.zero;
+            var calmCircle = calmGo.AddComponent<CircleCollider2D>();
+            calmCircle.isTrigger = true;
+            calmCircle.radius = 2.4f;
+            calmGo.AddComponent<SignpostCalmZone>();
+
+            var vera = NewSpriteObject("Vera", npcS, new Vector3(0.5f, standY, 0f), Vector3.one);
+            var vtrig = vera.AddComponent<BoxCollider2D>();
+            vtrig.isTrigger = true;
+            vtrig.size = new Vector2(0.65f, 1.15f);
+            vera.AddComponent<VeraGroveInteractable>();
+
+            var hollow = NewSpriteObject("HollowTree", npcS, new Vector3(5.2f, standY, 0f), new Vector3(1.4f, 2.2f, 1f));
+            hollow.GetComponent<SpriteRenderer>().color = new Color(0.35f, 0.38f, 0.32f, 1f);
+            var hbox = hollow.AddComponent<BoxCollider2D>();
+            hbox.isTrigger = true;
+            hbox.size = new Vector2(1.1f, 2.4f);
+            hollow.AddComponent<HollowTreeInteractable>();
+
+            var sliceEnd = NewTriggerZone("SliceEndHint", new Vector3(10.5f, standY, 0f), new Vector2(1f, 2f));
+            var sliceEx = sliceEnd.AddComponent<ExamineInteractable>();
+            SoText(sliceEx, "prompt", "Смотреть вдаль по тропе");
+            SoText(sliceEx, "examineText",
+                "Тропа уходит в серую мглу. Дальше — деревня с огнями, но этот кусок пути в игре ещё не готов.");
+
+            var fogMgr = new GameObject("FogGroveSystems");
+            fogMgr.AddComponent<QuestRuntime>();
+            fogMgr.AddComponent<AutoSaveListener>();
+            fogMgr.AddComponent<FogGroveDirector>();
+
+            var hudCanvas = NewCanvas("GameHUD", 0);
+            var fogRt = CreateUiChild("FogVignette", hudCanvas.transform);
+            fogRt.SetSiblingIndex(0);
+            StretchFull(fogRt);
+            var fogImg = fogRt.gameObject.AddComponent<Image>();
+            fogImg.sprite = FlatUiSprite();
+            fogImg.type = Image.Type.Simple;
+            fogImg.color = new Color(0.72f, 0.7f, 0.78f, 0.38f);
+            fogImg.raycastTarget = false;
+
+            BuildDialogueUi(hudCanvas.transform);
+            BuildDiaryUi(hudCanvas.transform);
+            BuildPromptHud(hudCanvas.transform);
+
             EnsureEventSystem();
             EditorSceneManager.SaveScene(scene, $"{ScenesDir}/FogGroveStub.unity");
         }

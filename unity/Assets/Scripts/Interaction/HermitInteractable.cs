@@ -13,6 +13,9 @@ namespace TikhayaTropa.Interaction
 
         public void Interact(GameState state)
         {
+            if (!state.HasFlag(GameFlags.HermitFourQuestionsStarted))
+                state.SetFlag(GameFlags.HermitFourQuestionsStarted);
+
             var choices = new List<DialoguePanel.DialogueChoice>
             {
                 new()

@@ -24,6 +24,7 @@ namespace TikhayaTropa.Interaction
             }
 
             state.RegisterLocationTransition();
+            state.SetChapterAct(2);
             SceneManager.LoadScene(targetSceneName);
         }
     }

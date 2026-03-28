@@ -30,7 +30,6 @@ namespace TikhayaTropa.Interaction
             }
 
             state.SetFlag(GameFlags.GatePassed);
-            state.SetChapterAct(2);
             state.AddDiaryEntry("gate", diaryAfterPass);
             DialoguePanel.Instance?.ShowMessage("Ты переступаешь порог. Тропа принимает шаг.");
             _step = 0;
