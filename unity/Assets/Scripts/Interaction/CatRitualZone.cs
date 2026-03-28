@@ -8,14 +8,25 @@ namespace TikhayaTropa.Interaction
     public class CatRitualZone : MonoBehaviour, IInteractable
     {
         [SerializeField] float waitSeconds = 3f;
-        [Tooltip("Выше обычной скорости ходьбы (~5), иначе кот пугается сразу при входе в зону.")]
-        [SerializeField] float scareVelocity = 7.5f;
-        [SerializeField] float scareGraceAfterEnter = 0.4f;
+        [Tooltip("В Update после милости: выше ходьбы (~5), ловит прыжок/падение в зоне.")]
+        [SerializeField] float scareVelocity = 6.2f;
+        [Tooltip("В момент входа в триггер: если |v| выше — сразу испуг (ходьба ~5 не попадает).")]
+        [SerializeField] float scareVelocityOnEnter = 5.85f;
+        [SerializeField] float scareGraceAfterEnter = 0.35f;
 
         float _calmTimer;
         float _scareAllowedTime;
         bool _inside;
         Transform _player;
+
+        void TryScare(GameState st)
+        {
+            if (st.HasFlag(GameFlags.CatTrusted) || st.HasFlag(GameFlags.CatScared)) return;
+            st.SetFlag(GameFlags.CatScared);
+            _calmTimer = 0f;
+            DialoguePanel.Instance?.ShowMessage("Кот вздрагивает и убегает в траву.",
+                DialogueSpeaker.Narrator);
+        }
 
         public string PromptText
         {
@@ -72,10 +83,7 @@ namespace TikhayaTropa.Interaction
             var v = rb != null ? rb.linearVelocity.magnitude : 0f;
             if (Time.time >= _scareAllowedTime && v > scareVelocity)
             {
-                st.SetFlag(GameFlags.CatScared);
-                _calmTimer = 0f;
-                DialoguePanel.Instance?.ShowMessage("Кот вздрагивает и убегает в траву.",
-                    DialogueSpeaker.Narrator);
+                TryScare(st);
                 return;
             }
 
@@ -88,6 +96,15 @@ namespace TikhayaTropa.Interaction
         void OnTriggerEnter2D(Collider2D other)
         {
             if (!other.CompareTag("Player")) return;
+            var st = GameState.Instance;
+            var rb = other.attachedRigidbody;
+            if (st != null && rb != null)
+            {
+                var vm = rb.linearVelocity.magnitude;
+                if (vm >= scareVelocityOnEnter)
+                    TryScare(st);
+            }
+
             _inside = true;
             _player = other.transform;
             _calmTimer = 0f;

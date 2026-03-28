@@ -132,6 +132,12 @@ namespace TikhayaTropa.EditorTools
             So(menu, "continueButton", cont);
             So(menu, "quitButton", quit);
 
+            AddTitleButtonTooltip(ng.gameObject, "Начать с чистого сохранения и первой главы.");
+            AddTitleButtonTooltip(cont.gameObject, "Загрузить последнее сохранение, если оно есть.");
+            AddTitleButtonTooltip(quit.gameObject, "Выйти из игры.");
+
+            BuildTitleTooltipOverlay(canvas.transform);
+
             EnsureEventSystem();
             EditorSceneManager.SaveScene(scene, $"{ScenesDir}/Title.unity");
         }
@@ -263,6 +269,7 @@ namespace TikhayaTropa.EditorTools
             BuildPromptHud(hudCanvas.transform);
             BuildDialogueUi(hudCanvas.transform, playerS, npcS);
             BuildDiaryUi(hudCanvas.transform);
+            BuildControlsTutorial(hudCanvas.transform, mgr);
 
             EnsureEventSystem();
             EditorSceneManager.SaveScene(scene, $"{ScenesDir}/Meadow.unity");
@@ -355,6 +362,13 @@ namespace TikhayaTropa.EditorTools
             hbox.size = new Vector2(1.1f, 2.4f);
             hollow.AddComponent<HollowTreeInteractable>();
 
+            var gladePatch = NewSpriteObject("FireflyGladePatch", groundS, new Vector3(3.2f, standY + 0.02f, 0f),
+                new Vector3(1.9f, 0.38f, 1f), 2);
+            gladePatch.GetComponent<SpriteRenderer>().color = new Color(0.4f, 0.5f, 0.36f, 1f);
+
+            var gladeZone = NewTriggerZone("FireflyGlade", new Vector3(3.2f, standY, 0f), new Vector2(2.4f, 1.15f));
+            gladeZone.AddComponent<FireflyGladeZone>();
+
             var sliceEnd = NewTriggerZone("SliceEndHint", new Vector3(10.5f, standY, 0f), new Vector2(1f, 2f));
             var sliceEx = sliceEnd.AddComponent<ExamineInteractable>();
             SoText(sliceEx, "prompt", "Смотреть вдаль по тропе");
@@ -376,6 +390,7 @@ namespace TikhayaTropa.EditorTools
             fogImg.type = Image.Type.Simple;
             fogImg.color = new Color(0.72f, 0.7f, 0.78f, 0.38f);
             fogImg.raycastTarget = false;
+            fogRt.gameObject.AddComponent<FogVignetteReactive>();
 
             BuildDialogueUi(hudCanvas.transform, playerS, npcS);
             BuildDiaryUi(hudCanvas.transform);
@@ -529,17 +544,130 @@ namespace TikhayaTropa.EditorTools
         {
             var rt = CreateUiChild("InteractionPrompt", parent);
             var root = rt.gameObject;
-            rt.anchorMin = new Vector2(0.05f, 0.02f);
-            rt.anchorMax = new Vector2(0.95f, 0.1f);
-            rt.offsetMin = rt.offsetMax = Vector2.zero;
-            var txt = root.AddComponent<Text>();
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
+            rt.pivot = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = new Vector2(0f, 14f);
+            rt.sizeDelta = new Vector2(520f, 40f);
+
+            var cg = root.AddComponent<CanvasGroup>();
+            cg.alpha = 0f;
+            cg.blocksRaycasts = false;
+            cg.interactable = false;
+
+            var bg = root.AddComponent<Image>();
+            bg.sprite = FlatUiSprite();
+            bg.type = Image.Type.Simple;
+            bg.color = new Color(0.08f, 0.07f, 0.1f, 0.88f);
+            bg.raycastTarget = false;
+
+            var trt = CreateUiChild("Label", root.transform);
+            trt.anchorMin = Vector2.zero;
+            trt.anchorMax = Vector2.one;
+            trt.offsetMin = new Vector2(14f, 6f);
+            trt.offsetMax = new Vector2(-14f, -6f);
+            var txt = trt.gameObject.AddComponent<Text>();
             txt.font = LoadUiFont();
             txt.fontSize = 16;
-            txt.color = new Color(0.95f, 0.92f, 0.85f, 0.95f);
-            txt.alignment = TextAnchor.LowerLeft;
+            txt.color = new Color(0.95f, 0.92f, 0.85f, 0.98f);
+            txt.alignment = TextAnchor.MiddleCenter;
+            txt.horizontalOverflow = HorizontalWrapMode.Wrap;
+            txt.verticalOverflow = VerticalWrapMode.Truncate;
             txt.raycastTarget = false;
+
             var hud = root.AddComponent<InteractionPromptHUD>();
+            So(hud, "canvasGroup", cg);
             So(hud, "promptText", txt);
+        }
+
+        static void BuildControlsTutorial(Transform hudParent, GameObject systemsHost)
+        {
+            var rootRt = CreateUiChild("ControlsTutorial", hudParent);
+            StretchFull(rootRt);
+            var nested = rootRt.gameObject.AddComponent<Canvas>();
+            nested.overrideSorting = true;
+            nested.sortingOrder = 80;
+            rootRt.gameObject.AddComponent<GraphicRaycaster>();
+
+            var dimRt = CreateUiChild("Dim", rootRt);
+            StretchFull(dimRt);
+            var dim = dimRt.gameObject.AddComponent<Image>();
+            dim.sprite = FlatUiSprite();
+            dim.type = Image.Type.Simple;
+            dim.color = new Color(0f, 0f, 0f, 0.58f);
+
+            var panelRt = CreateUiChild("Panel", rootRt);
+            panelRt.anchorMin = panelRt.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRt.sizeDelta = new Vector2(540f, 340f);
+            var panelBg = panelRt.gameObject.AddComponent<Image>();
+            panelBg.sprite = FlatUiSprite();
+            panelBg.type = Image.Type.Simple;
+            panelBg.color = new Color(0.12f, 0.1f, 0.14f, 0.98f);
+
+            var bodyRt = CreateUiChild("Body", panelRt);
+            bodyRt.anchorMin = new Vector2(0.08f, 0.22f);
+            bodyRt.anchorMax = new Vector2(0.92f, 0.9f);
+            bodyRt.offsetMin = bodyRt.offsetMax = Vector2.zero;
+            var body = bodyRt.gameObject.AddComponent<Text>();
+            body.font = LoadUiFont();
+            body.fontSize = 18;
+            body.alignment = TextAnchor.UpperLeft;
+            body.color = new Color(0.93f, 0.9f, 0.84f, 1f);
+            body.horizontalOverflow = HorizontalWrapMode.Wrap;
+            body.verticalOverflow = VerticalWrapMode.Overflow;
+
+            var dismissBtn = CreateButton(panelRt.transform, "DismissTutorial", "Понятно", new Vector2(0f, -118f));
+            var drt = dismissBtn.GetComponent<RectTransform>();
+            drt.sizeDelta = new Vector2(200f, 44f);
+
+            rootRt.gameObject.SetActive(false);
+
+            var ctrl = systemsHost.AddComponent<ControlsTutorialController>();
+            So(ctrl, "tutorialRoot", nested);
+            So(ctrl, "bodyText", body);
+            So(ctrl, "dismissButton", dismissBtn);
+        }
+
+        static void BuildTitleTooltipOverlay(Transform canvasTransform)
+        {
+            var layerRt = CreateUiChild("TooltipOverlay", canvasTransform);
+            StretchFull(layerRt);
+            var layerCanvas = layerRt.gameObject.AddComponent<Canvas>();
+            layerCanvas.overrideSorting = true;
+            layerCanvas.sortingOrder = 200;
+
+            var panelRt = CreateUiChild("TooltipPanel", layerRt);
+            panelRt.anchorMin = panelRt.anchorMax = new Vector2(0f, 1f);
+            panelRt.pivot = new Vector2(0f, 1f);
+            panelRt.sizeDelta = new Vector2(320f, 72f);
+            var panelImg = panelRt.gameObject.AddComponent<Image>();
+            panelImg.sprite = FlatUiSprite();
+            panelImg.type = Image.Type.Simple;
+            panelImg.color = new Color(0.1f, 0.09f, 0.12f, 0.94f);
+            panelImg.raycastTarget = false;
+
+            var lblRt = CreateUiChild("Label", panelRt.transform);
+            lblRt.anchorMin = Vector2.zero;
+            lblRt.anchorMax = Vector2.one;
+            lblRt.offsetMin = new Vector2(10f, 8f);
+            lblRt.offsetMax = new Vector2(-10f, -8f);
+            var lbl = lblRt.gameObject.AddComponent<Text>();
+            lbl.font = LoadUiFont();
+            lbl.fontSize = 15;
+            lbl.alignment = TextAnchor.MiddleLeft;
+            lbl.color = new Color(0.94f, 0.91f, 0.85f, 1f);
+            lbl.horizontalOverflow = HorizontalWrapMode.Wrap;
+            lbl.verticalOverflow = VerticalWrapMode.Truncate;
+            lbl.raycastTarget = false;
+
+            var overlay = layerRt.gameObject.AddComponent<TooltipOverlay>();
+            So(overlay, "panel", panelRt);
+            So(overlay, "label", lbl);
+        }
+
+        static void AddTitleButtonTooltip(GameObject buttonRoot, string tooltip)
+        {
+            var h = buttonRoot.AddComponent<HoverTooltipTrigger>();
+            SoText(h, "tooltip", tooltip);
         }
 
         static GameObject NewSpriteObject(string name, Sprite sprite, Vector3 pos, Vector3 scale, int sortingOrder = 10)

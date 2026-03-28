@@ -4,6 +4,7 @@ namespace TikhayaTropa.Core
     {
         public const string GatePassed = "gate-passed";
         public const string IntroCinematicDone = "intro-cinematic-done";
+        public const string ControlsTutorialDone = "controls-tutorial-done";
         public const string CatTrusted = "cat-trusted";
         public const string CatScared = "cat-scared";
         public const string HermitQ1Done = "hermit-q1-done";
@@ -20,5 +21,6 @@ namespace TikhayaTropa.Core
         public const string VeraQuestAccepted = "vera-quest-accepted";
         public const string VeraQuestDeclined = "vera-quest-declined";
         public const string HollowLavenderTaken = "hollow-lavender-taken";
+        public const string FireflyGladeDone = "firefly-glade-done";
     }
 }

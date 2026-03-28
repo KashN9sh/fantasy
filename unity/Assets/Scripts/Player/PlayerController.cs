@@ -14,6 +14,7 @@ namespace TikhayaTropa.Player
         [SerializeField] InputActionAsset inputActions;
         [Header("Move")]
         [SerializeField] float moveSpeed = 5f;
+        [SerializeField] float sprintSpeed = 8.25f;
         [Header("Jump")]
         [SerializeField] float jumpSpeed = 7.2f;
         [SerializeField] float coyoteTime = 0.12f;
@@ -28,6 +29,7 @@ namespace TikhayaTropa.Player
         SpriteRenderer _sprite;
         InputAction _move;
         InputAction _jump;
+        InputAction _sprint;
 
         float _lastOnGroundTime;
         float _lastJumpPressedTime;
@@ -42,6 +44,7 @@ namespace TikhayaTropa.Player
             var map = inputActions.FindActionMap("Player");
             _move = map.FindAction("Move");
             _jump = map.FindAction("Jump");
+            _sprint = map.FindAction("Sprint");
         }
 
         void OnEnable()
@@ -79,8 +82,12 @@ namespace TikhayaTropa.Player
             var moveX = input.x;
             if (Mathf.Abs(moveX) > 1f) moveX = Mathf.Sign(moveX);
 
+            var speed = moveSpeed;
+            if (_sprint != null && _sprint.IsPressed() && Mathf.Abs(moveX) > 0.02f)
+                speed = sprintSpeed;
+
             var v = _rb.linearVelocity;
-            v.x = moveX * moveSpeed;
+            v.x = moveX * speed;
             _rb.linearVelocity = v;
 
             if (_sprite != null && Mathf.Abs(moveX) > 0.05f)

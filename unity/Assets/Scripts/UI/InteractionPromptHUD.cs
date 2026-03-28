@@ -3,18 +3,25 @@ using UnityEngine.UI;
 
 namespace TikhayaTropa.UI
 {
+    /// <summary>Контекстный тултип [E] у нижней кромки; без постоянной шпаргалки по управлению.</summary>
     public class InteractionPromptHUD : MonoBehaviour
     {
         public static InteractionPromptHUD Instance { get; private set; }
 
+        [SerializeField] CanvasGroup canvasGroup;
         [SerializeField] Text promptText;
 
         void Awake()
         {
             Instance = this;
-            promptText.text = string.Empty;
             if (promptText != null)
+            {
+                promptText.text = string.Empty;
                 promptText.raycastTarget = false;
+            }
+
+            if (canvasGroup != null)
+                canvasGroup.alpha = 0f;
         }
 
         void OnDestroy()
@@ -25,9 +32,21 @@ namespace TikhayaTropa.UI
         public void SetPrompt(string text)
         {
             if (promptText == null) return;
-            promptText.text = string.IsNullOrEmpty(text)
-                ? "[A/D или стрелки] Ходьба   ·   [Пробел] Прыжок   ·   [J] Дневник"
-                : $"[E] {text}   ·   [Пробел] Прыжок   ·   [J] Дневник";
+            if (string.IsNullOrEmpty(text))
+            {
+                promptText.text = string.Empty;
+                if (canvasGroup != null)
+                    canvasGroup.alpha = 0f;
+                else
+                    promptText.enabled = false;
+                return;
+            }
+
+            promptText.text = $"[E] {text}";
+            if (canvasGroup != null)
+                canvasGroup.alpha = 1f;
+            else
+                promptText.enabled = true;
         }
     }
 }
