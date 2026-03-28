@@ -9,7 +9,7 @@ namespace TikhayaTropa.Player
     public class PlayerInteraction : MonoBehaviour
     {
         [SerializeField] InputActionAsset inputActions;
-        [SerializeField] float radius = 0.65f;
+        [SerializeField] float radius = 1.05f;
         [SerializeField] LayerMask interactableLayers = ~0;
 
         InputAction _interact;
@@ -18,6 +18,7 @@ namespace TikhayaTropa.Player
 
         void Awake()
         {
+            GameState.EnsureExists();
             var map = inputActions.FindActionMap("Player");
             _interact = map.FindAction("Interact");
             _diary = map.FindAction("Diary");

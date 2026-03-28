@@ -30,20 +30,20 @@ namespace TikhayaTropa.Interaction
         {
             if (state.HasFlag(GameFlags.FogSignpostWonder))
             {
-                DialoguePanel.Instance?.ShowMessage(doneFlavor);
+                DialoguePanel.Instance?.ShowMessage(doneFlavor, DialogueSpeaker.Narrator);
                 return;
             }
 
             if (!state.HasFlag(GameFlags.FogSignpostExamined))
             {
                 state.SetFlag(GameFlags.FogSignpostExamined);
-                DialoguePanel.Instance?.ShowMessage(examineText);
+                DialoguePanel.Instance?.ShowMessage(examineText, DialogueSpeaker.Narrator);
                 return;
             }
 
             if (calmZone == null || !calmZone.IsCalmEnough)
             {
-                DialoguePanel.Instance?.ShowMessage(hintStandStill);
+                DialoguePanel.Instance?.ShowMessage(hintStandStill, DialogueSpeaker.Narrator);
                 return;
             }
 
@@ -51,7 +51,7 @@ namespace TikhayaTropa.Interaction
             state.ModStat(StatKind.Acceptance, 2);
             state.AddDiaryEntry("fog-signpost",
                 "Я постоял у пустого указателя. Туман на миг отступил — будто мир сказал: иди дальше, даже вслепую.");
-            DialoguePanel.Instance?.ShowMessage(wonderText);
+            DialoguePanel.Instance?.ShowMessage(wonderText, DialogueSpeaker.Narrator);
         }
     }
 }

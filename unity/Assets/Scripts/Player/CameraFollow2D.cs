@@ -9,7 +9,8 @@ namespace TikhayaTropa.Player
     public class CameraFollow2D : MonoBehaviour
     {
         [SerializeField] Transform target;
-        [SerializeField] Vector3 offset = new(0f, 0.35f, 0f);
+        /// <summary>Положительный Y — камера выше игрока, персонаж и земля ниже в кадре (меньше «пустоты» под ногами).</summary>
+        [SerializeField] Vector3 offset = new(0f, 1.7f, 0f);
         [SerializeField] float smoothTime = 0.18f;
         [SerializeField] bool lockY;
 

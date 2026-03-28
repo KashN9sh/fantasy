@@ -19,7 +19,7 @@ namespace TikhayaTropa.Interaction
         {
             if (!state.HasFlag(GameFlags.HermitQ1Done))
             {
-                DialoguePanel.Instance?.ShowMessage(blockedMessage);
+                DialoguePanel.Instance?.ShowMessage(blockedMessage, DialogueSpeaker.Narrator);
                 return;
             }
 

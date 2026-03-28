@@ -41,6 +41,27 @@ namespace TikhayaTropa.EditorTools
         const string ScenesDir = "Assets/Scenes";
         const string UiFontPath = "Assets/Fonts/SMB1NESClassix-Regular.otf";
 
+        /// <summary>
+        /// В Play Mode <see cref="EditorSceneManager.NewScene"/> бросает InvalidOperationException (Unity 6+).
+        /// В batchmode / edit mode — обычный NewScene.
+        /// </summary>
+        static Scene CreateBuilderScene(NewSceneSetup setup)
+        {
+            if (!EditorApplication.isPlaying)
+                return EditorSceneManager.NewScene(setup, NewSceneMode.Single);
+
+            var unique = $"TikhayaBuild_{System.Guid.NewGuid():N}";
+            var scene = SceneManager.CreateScene(unique);
+            if (setup == NewSceneSetup.DefaultGameObjects)
+            {
+                var camGo = new GameObject("Main Camera");
+                camGo.tag = "MainCamera";
+                camGo.AddComponent<Camera>();
+            }
+
+            return scene;
+        }
+
         static Font LoadUiFont()
         {
             var f = AssetDatabase.LoadAssetAtPath<Font>(UiFontPath);
@@ -58,9 +79,10 @@ namespace TikhayaTropa.EditorTools
             var catSprite = GetOrCreateSprite($"{ArtDir}/ph_cat.png", 10, 8, new Color32(180, 90, 40, 255));
             var gateSprite = GetOrCreateSprite($"{ArtDir}/ph_gate.png", 16, 24, new Color32(70, 55, 40, 255));
             var groundSprite = GetOrCreateSprite($"{ArtDir}/ph_ground.png", 64, 48, new Color32(168, 184, 122, 255));
+            var wellSprite = GetOrCreateSprite($"{ArtDir}/ph_well.png", 12, 10, new Color32(88, 92, 108, 255));
 
             BuildTitleScene();
-            BuildMeadowScene(input, playerSprite, npcSprite, catSprite, gateSprite, groundSprite);
+            BuildMeadowScene(input, playerSprite, npcSprite, catSprite, gateSprite, groundSprite, wellSprite);
             BuildFogStubScene(input, playerSprite, npcSprite, groundSprite, gateSprite);
 
             var title = AssetDatabase.LoadAssetAtPath<SceneAsset>($"{ScenesDir}/Title.unity");
@@ -79,7 +101,7 @@ namespace TikhayaTropa.EditorTools
 
         static void BuildTitleScene()
         {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            var scene = CreateBuilderScene(NewSceneSetup.DefaultGameObjects);
             var camGo = GameObject.FindGameObjectWithTag("MainCamera");
             if (camGo != null)
             {
@@ -115,15 +137,15 @@ namespace TikhayaTropa.EditorTools
         }
 
         static void BuildMeadowScene(InputActionAsset input, Sprite playerS, Sprite npcS, Sprite catS, Sprite gateS,
-            Sprite groundS)
+            Sprite groundS, Sprite wellS)
         {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var scene = CreateBuilderScene(NewSceneSetup.EmptyScene);
 
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
             cam.orthographic = true;
-            cam.orthographicSize = 5.625f;
+            cam.orthographicSize = 3.5f;
             cam.backgroundColor = new Color(0.55f, 0.62f, 0.72f, 1f);
             cam.useOcclusionCulling = false;
             camGo.transform.position = new Vector3(0, 0, -10);
@@ -135,7 +157,8 @@ namespace TikhayaTropa.EditorTools
             ppc.assetsPPU = 16;
             ppc.upscaleRT = true;
             ppc.pixelSnapping = true;
-            camGo.AddComponent<CameraFollow2D>();
+            var camFollow = camGo.AddComponent<CameraFollow2D>();
+            SoVector3(camFollow, "offset", new Vector3(0f, 1.7f, 0f));
 
             var lightGo = new GameObject("Global Light 2D");
             var light2d = lightGo.AddComponent<Light2D>();
@@ -147,7 +170,7 @@ namespace TikhayaTropa.EditorTools
             const float floorHalfH = 0.21f;
             var floorTop = floorY + floorHalfH;
 
-            NewSpriteObject("MeadowBackdrop", groundS, new Vector3(3f, 0.35f, 0f), new Vector3(28f, 14f, 1f), -15);
+            NewSpriteObject("MeadowBackdrop", groundS, new Vector3(3f, 0.15f, 0f), new Vector3(28f, 14f, 1f), -15);
 
             var floorGo = new GameObject("Floor");
             floorGo.transform.position = new Vector3(4f, floorY, 0f);
@@ -179,6 +202,10 @@ namespace TikhayaTropa.EditorTools
             gtrig.isTrigger = true;
             gtrig.size = new Vector2(0.8f, 1.4f);
             gate.AddComponent<GateInteractable>();
+
+            var wellVis = NewSpriteObject("WellVisual", wellS, new Vector3(-4f, standY + 0.08f, 0f),
+                new Vector3(0.55f, 0.48f, 1f), 4);
+            wellVis.GetComponent<SpriteRenderer>().color = new Color(0.55f, 0.58f, 0.62f, 1f);
 
             var well = NewTriggerZone("Well", new Vector3(-4f, standY, 0f), new Vector2(1.2f, 1.2f));
             var wellEx = well.AddComponent<ExamineInteractable>();
@@ -232,9 +259,10 @@ namespace TikhayaTropa.EditorTools
             So(director, "introLine", introText);
 
             var hudCanvas = NewCanvas("GameHUD", 0);
-            BuildDialogueUi(hudCanvas.transform);
-            BuildDiaryUi(hudCanvas.transform);
+            // Порядок снизу вверх по отрисовке: подсказка → диалог → дневник (иначе Prompt перехватывает raycast).
             BuildPromptHud(hudCanvas.transform);
+            BuildDialogueUi(hudCanvas.transform, playerS, npcS);
+            BuildDiaryUi(hudCanvas.transform);
 
             EnsureEventSystem();
             EditorSceneManager.SaveScene(scene, $"{ScenesDir}/Meadow.unity");
@@ -242,13 +270,13 @@ namespace TikhayaTropa.EditorTools
 
         static void BuildFogStubScene(InputActionAsset input, Sprite playerS, Sprite npcS, Sprite groundS, Sprite gateS)
         {
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var scene = CreateBuilderScene(NewSceneSetup.EmptyScene);
 
             var camGo = new GameObject("Main Camera");
             camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
             cam.orthographic = true;
-            cam.orthographicSize = 5.625f;
+            cam.orthographicSize = 3.5f;
             cam.backgroundColor = new Color(0.14f, 0.13f, 0.18f, 1f);
             cam.useOcclusionCulling = false;
             camGo.transform.position = new Vector3(0, 0, -10);
@@ -260,7 +288,8 @@ namespace TikhayaTropa.EditorTools
             ppc.assetsPPU = 16;
             ppc.upscaleRT = true;
             ppc.pixelSnapping = true;
-            camGo.AddComponent<CameraFollow2D>();
+            var fogCamFollow = camGo.AddComponent<CameraFollow2D>();
+            SoVector3(fogCamFollow, "offset", new Vector3(0f, 1.7f, 0f));
 
             var lightGo = new GameObject("Global Light 2D");
             var light2d = lightGo.AddComponent<Light2D>();
@@ -272,7 +301,7 @@ namespace TikhayaTropa.EditorTools
             const float floorHalfH = 0.21f;
             var floorTop = floorY + floorHalfH;
 
-            var fogBack = NewSpriteObject("FogBackdrop", groundS, new Vector3(3f, 0.2f, 0f), new Vector3(26f, 12f, 1f), -15);
+            var fogBack = NewSpriteObject("FogBackdrop", groundS, new Vector3(3f, 0.05f, 0f), new Vector3(26f, 12f, 1f), -15);
             fogBack.GetComponent<SpriteRenderer>().color = new Color(0.5f, 0.52f, 0.58f, 1f);
 
             var floorGo = new GameObject("Floor");
@@ -338,6 +367,7 @@ namespace TikhayaTropa.EditorTools
             fogMgr.AddComponent<FogGroveDirector>();
 
             var hudCanvas = NewCanvas("GameHUD", 0);
+            BuildPromptHud(hudCanvas.transform);
             var fogRt = CreateUiChild("FogVignette", hudCanvas.transform);
             fogRt.SetSiblingIndex(0);
             StretchFull(fogRt);
@@ -347,60 +377,92 @@ namespace TikhayaTropa.EditorTools
             fogImg.color = new Color(0.72f, 0.7f, 0.78f, 0.38f);
             fogImg.raycastTarget = false;
 
-            BuildDialogueUi(hudCanvas.transform);
+            BuildDialogueUi(hudCanvas.transform, playerS, npcS);
             BuildDiaryUi(hudCanvas.transform);
-            BuildPromptHud(hudCanvas.transform);
 
             EnsureEventSystem();
             EditorSceneManager.SaveScene(scene, $"{ScenesDir}/FogGroveStub.unity");
         }
 
-        static void BuildDialogueUi(Transform parent)
+        static void BuildDialogueUi(Transform parent, Sprite playerPortrait, Sprite npcPortrait)
         {
+            _ = playerPortrait; // портрет героя в диалоге не показываем
             var rootRt = CreateUiChild("DialoguePanel", parent);
             StretchFull(rootRt);
             var root = rootRt.gameObject;
-            var panelImg = root.AddComponent<Image>();
-            panelImg.color = new Color(0.05f, 0.05f, 0.06f, 0.92f);
+            var dimImg = root.AddComponent<Image>();
+            dimImg.color = new Color(0.03f, 0.03f, 0.05f, 0.5f);
 
-            var bodyRt = CreateUiChild("Body", root.transform);
+            const float bottomH = 0.26f;
+            var stageRt = CreateUiChild("PortraitStage", root.transform);
+            stageRt.anchorMin = new Vector2(0f, bottomH);
+            stageRt.anchorMax = new Vector2(1f, 1f);
+            stageRt.offsetMin = stageRt.offsetMax = Vector2.zero;
+
+            var portraitRt = CreateUiChild("PortraitCenter", stageRt);
+            portraitRt.anchorMin = new Vector2(0.18f, 0.02f);
+            portraitRt.anchorMax = new Vector2(0.82f, 0.98f);
+            portraitRt.offsetMin = portraitRt.offsetMax = Vector2.zero;
+            var portraitImg = portraitRt.gameObject.AddComponent<Image>();
+            portraitImg.sprite = npcPortrait;
+            portraitImg.preserveAspect = true;
+            portraitImg.color = Color.white;
+            portraitImg.raycastTarget = false;
+
+            var bottomRt = CreateUiChild("BottomBar", root.transform);
+            bottomRt.anchorMin = new Vector2(0f, 0f);
+            bottomRt.anchorMax = new Vector2(1f, bottomH);
+            bottomRt.offsetMin = bottomRt.offsetMax = Vector2.zero;
+            var bottomBg = bottomRt.gameObject.AddComponent<Image>();
+            bottomBg.sprite = FlatUiSprite();
+            bottomBg.type = Image.Type.Simple;
+            bottomBg.color = new Color(0.06f, 0.06f, 0.08f, 0.97f);
+
+            var bodyRt = CreateUiChild("Body", bottomRt);
             var body = bodyRt.gameObject.AddComponent<Text>();
             body.font = LoadUiFont();
-            body.fontSize = 20;
-            body.color = new Color(0.93f, 0.9f, 0.85f);
+            body.fontSize = 18;
+            body.color = new Color(0.94f, 0.91f, 0.86f);
             body.alignment = TextAnchor.UpperLeft;
-            bodyRt.anchorMin = new Vector2(0.08f, 0.25f);
-            bodyRt.anchorMax = new Vector2(0.92f, 0.88f);
+            body.horizontalOverflow = HorizontalWrapMode.Wrap;
+            body.verticalOverflow = VerticalWrapMode.Truncate;
+            bodyRt.anchorMin = new Vector2(0.035f, 0.14f);
+            bodyRt.anchorMax = new Vector2(0.56f, 0.92f);
             bodyRt.offsetMin = bodyRt.offsetMax = Vector2.zero;
 
-            var closeRt = CreateUiChild("Close", root.transform);
+            var closeRt = CreateUiChild("Close", bottomRt);
             var closeGo = closeRt.gameObject;
             var closeBtn = closeGo.AddComponent<Button>();
             var closeImg = closeGo.AddComponent<Image>();
-            closeImg.color = new Color(0.25f, 0.22f, 0.2f, 1f);
-            closeRt.anchorMin = new Vector2(0.75f, 0.06f);
-            closeRt.anchorMax = new Vector2(0.95f, 0.14f);
+            closeImg.sprite = FlatUiSprite();
+            closeImg.type = Image.Type.Simple;
+            closeImg.color = new Color(0.2f, 0.18f, 0.17f, 1f);
+            closeBtn.targetGraphic = closeImg;
+            closeRt.anchorMin = new Vector2(0.62f, 0.08f);
+            closeRt.anchorMax = new Vector2(0.96f, 0.42f);
             closeRt.offsetMin = closeRt.offsetMax = Vector2.zero;
             var closeLabelRt = CreateUiChild("Label", closeGo.transform);
             var ct = closeLabelRt.gameObject.AddComponent<Text>();
             ct.font = LoadUiFont();
             ct.text = "Закрыть";
-            ct.fontSize = 18;
+            ct.fontSize = 17;
             ct.alignment = TextAnchor.MiddleCenter;
             ct.color = Color.white;
             StretchFull(closeLabelRt);
 
-            var cprt = CreateUiChild("Choices", root.transform);
-            cprt.anchorMin = new Vector2(0.08f, 0.08f);
-            cprt.anchorMax = new Vector2(0.92f, 0.35f);
-            cprt.offsetMin = cprt.offsetMax = Vector2.zero;
+            var cprt = CreateUiChild("ChoicesRail", root.transform);
+            cprt.anchorMin = new Vector2(0.54f, bottomH + 0.02f);
+            cprt.anchorMax = new Vector2(0.98f, 0.92f);
+            cprt.offsetMin = new Vector2(8f, 0f);
+            cprt.offsetMax = new Vector2(-12f, -8f);
             var vlg = cprt.gameObject.AddComponent<VerticalLayoutGroup>();
-            vlg.spacing = 8;
-            vlg.childAlignment = TextAnchor.UpperCenter;
+            vlg.spacing = 10;
+            vlg.padding = new RectOffset(0, 0, 4, 4);
+            vlg.childAlignment = TextAnchor.UpperRight;
             vlg.childControlHeight = true;
             vlg.childControlWidth = true;
             vlg.childForceExpandHeight = false;
-            vlg.childForceExpandWidth = true;
+            vlg.childForceExpandWidth = false;
 
             var prefabRt = CreateUiChild("ChoiceButtonPrefab", root.transform);
             var prefab = prefabRt.gameObject;
@@ -408,16 +470,18 @@ namespace TikhayaTropa.EditorTools
             var prefabImg = prefab.AddComponent<Image>();
             prefabImg.sprite = FlatUiSprite();
             prefabImg.type = Image.Type.Simple;
-            prefabImg.color = new Color(0.3f, 0.28f, 0.25f, 1f);
+            prefabImg.color = new Color(0.14f, 0.14f, 0.16f, 0.98f);
             prefabBtn.targetGraphic = prefabImg;
             var prefabLe = prefab.AddComponent<LayoutElement>();
-            prefabLe.minHeight = 44f;
-            prefabLe.preferredHeight = 44f;
-            prefabLe.flexibleWidth = 1f;
+            prefabLe.minHeight = 46f;
+            prefabLe.preferredHeight = 46f;
+            prefabLe.minWidth = 220f;
+            prefabLe.preferredWidth = 280f;
+            prefabLe.flexibleWidth = 0f;
             prefabRt.anchorMin = new Vector2(0f, 1f);
             prefabRt.anchorMax = new Vector2(1f, 1f);
-            prefabRt.pivot = new Vector2(0.5f, 1f);
-            prefabRt.sizeDelta = new Vector2(0f, 44f);
+            prefabRt.pivot = new Vector2(1f, 1f);
+            prefabRt.sizeDelta = new Vector2(0f, 46f);
             var prefabLblRt = CreateUiChild("Label", prefab.transform);
             var pt = prefabLblRt.gameObject.AddComponent<Text>();
             pt.font = LoadUiFont();
@@ -429,6 +493,9 @@ namespace TikhayaTropa.EditorTools
 
             var dp = root.AddComponent<DialoguePanel>();
             So(dp, "panelRoot", root);
+            So(dp, "portraitStage", stageRt.gameObject);
+            So(dp, "portraitCenter", portraitImg);
+            So(dp, "defaultNpcPortrait", npcPortrait);
             So(dp, "bodyText", body);
             So(dp, "closeButton", closeBtn);
             So(dp, "choiceButtonParent", cprt);
@@ -470,6 +537,7 @@ namespace TikhayaTropa.EditorTools
             txt.fontSize = 16;
             txt.color = new Color(0.95f, 0.92f, 0.85f, 0.95f);
             txt.alignment = TextAnchor.LowerLeft;
+            txt.raycastTarget = false;
             var hud = root.AddComponent<InteractionPromptHUD>();
             So(hud, "promptText", txt);
         }
@@ -603,6 +671,13 @@ namespace TikhayaTropa.EditorTools
         {
             var so = new SerializedObject(comp);
             so.FindProperty(field).enumValueIndex = enumIndex;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static void SoVector3(Object comp, string field, Vector3 value)
+        {
+            var so = new SerializedObject(comp);
+            so.FindProperty(field).vector3Value = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 

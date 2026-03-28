@@ -13,6 +13,8 @@ namespace TikhayaTropa.UI
         {
             Instance = this;
             promptText.text = string.Empty;
+            if (promptText != null)
+                promptText.raycastTarget = false;
         }
 
         void OnDestroy()

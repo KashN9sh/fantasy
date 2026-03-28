@@ -29,28 +29,28 @@ namespace TikhayaTropa.Interaction
         {
             if (state.HasFlag(GameFlags.BenchInscriptionsQuestDone))
             {
-                DialoguePanel.Instance?.ShowMessage(doneFlavor);
+                DialoguePanel.Instance?.ShowMessage(doneFlavor, DialogueSpeaker.Narrator);
                 return;
             }
 
             if (!state.HasFlag(GameFlags.BenchInscriptionRead1))
             {
                 state.SetFlag(GameFlags.BenchInscriptionRead1);
-                DialoguePanel.Instance?.ShowMessage(line1);
+                DialoguePanel.Instance?.ShowMessage(line1, DialogueSpeaker.Narrator);
                 return;
             }
 
             if (!state.HasFlag(GameFlags.BenchInscriptionRead2))
             {
                 state.SetFlag(GameFlags.BenchInscriptionRead2);
-                DialoguePanel.Instance?.ShowMessage(line2);
+                DialoguePanel.Instance?.ShowMessage(line2, DialogueSpeaker.Narrator);
                 return;
             }
 
             if (!state.HasFlag(GameFlags.BenchInscriptionRead3))
             {
                 state.SetFlag(GameFlags.BenchInscriptionRead3);
-                DialoguePanel.Instance?.ShowMessage(line3);
+                DialoguePanel.Instance?.ShowMessage(line3, DialogueSpeaker.Narrator);
                 return;
             }
 
@@ -58,7 +58,7 @@ namespace TikhayaTropa.Interaction
             state.ModStat(StatKind.Acceptance, 1);
             state.AddDiaryEntry("bench-inscriptions",
                 "Я перечитал надписи на скамейке. Чужие слова оказались близкими.");
-            DialoguePanel.Instance?.ShowMessage(lineFinal);
+            DialoguePanel.Instance?.ShowMessage(lineFinal, DialogueSpeaker.Narrator);
         }
     }
 }

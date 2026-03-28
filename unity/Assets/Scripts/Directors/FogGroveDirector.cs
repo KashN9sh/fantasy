@@ -19,7 +19,7 @@ namespace TikhayaTropa.Directors
             var st = GameState.Instance;
             if (st == null || st.HasFlag(GameFlags.FogGroveWelcomeDone)) yield break;
             st.SetFlag(GameFlags.FogGroveWelcomeDone);
-            DialoguePanel.Instance?.ShowMessage(welcomeLine);
+            DialoguePanel.Instance?.ShowMessage(welcomeLine, DialogueSpeaker.Narrator);
         }
     }
 }

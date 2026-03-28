@@ -24,14 +24,15 @@ namespace TikhayaTropa.Interaction
         {
             if (_step == 0)
             {
-                DialoguePanel.Instance?.ShowMessage(inscription);
+                DialoguePanel.Instance?.ShowMessage(inscription, DialogueSpeaker.Narrator);
                 _step = 1;
                 return;
             }
 
             state.SetFlag(GameFlags.GatePassed);
             state.AddDiaryEntry("gate", diaryAfterPass);
-            DialoguePanel.Instance?.ShowMessage("Ты переступаешь порог. Тропа принимает шаг.");
+            DialoguePanel.Instance?.ShowMessage("Ты переступаешь порог. Тропа принимает шаг.",
+                DialogueSpeaker.Narrator);
             _step = 0;
         }
     }

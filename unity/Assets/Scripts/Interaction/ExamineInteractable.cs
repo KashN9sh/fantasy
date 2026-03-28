@@ -26,7 +26,7 @@ namespace TikhayaTropa.Interaction
                 state.ModStat(optionalStat, optionalStatDelta);
                 _statApplied = true;
             }
-            DialoguePanel.Instance?.ShowMessage(examineText);
+            DialoguePanel.Instance?.ShowMessage(examineText, DialogueSpeaker.Narrator);
         }
     }
 }

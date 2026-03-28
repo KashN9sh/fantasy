@@ -26,6 +26,17 @@ namespace TikhayaTropa.Core
 
         public bool InputFrozen { get; set; }
 
+        /// <summary>
+        /// Создаёт сессию, если игрок попал в игровую сцену без Title (Play на Meadow и т.п.).
+        /// </summary>
+        public static void EnsureExists()
+        {
+            if (Instance != null) return;
+            var go = new GameObject("GameSession");
+            go.AddComponent<GameState>();
+            Instance.NewGame();
+        }
+
         void Awake()
         {
             if (Instance != null && Instance != this)

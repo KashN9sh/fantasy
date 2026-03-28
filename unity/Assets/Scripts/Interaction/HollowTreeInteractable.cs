@@ -23,7 +23,7 @@ namespace TikhayaTropa.Interaction
         {
             if (state.HasFlag(GameFlags.HollowLavenderTaken))
             {
-                DialoguePanel.Instance?.ShowMessage(doneFlavor);
+                DialoguePanel.Instance?.ShowMessage(doneFlavor, DialogueSpeaker.Narrator);
                 return;
             }
 
@@ -31,7 +31,7 @@ namespace TikhayaTropa.Interaction
             state.AddItem("dried-lavender");
             state.AddDiaryEntry("hollow-lavender",
                 "В дупле нашёл записку и лаванду. Слова о дороге — не о заблуждении.");
-            DialoguePanel.Instance?.ShowMessage(examineText);
+            DialoguePanel.Instance?.ShowMessage(examineText, DialogueSpeaker.Narrator);
         }
     }
 }
