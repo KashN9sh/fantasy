@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System;
 using System.IO;
 using TikhayaTropa.Core;
 using TikhayaTropa.Directors;
@@ -74,7 +75,9 @@ namespace TikhayaTropa.EditorTools
             Directory.CreateDirectory(ArtDir);
             Directory.CreateDirectory(ScenesDir);
             var input = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
-            var playerSprite = GetOrCreateSprite($"{ArtDir}/ph_player.png", 12, 20, new Color32(92, 64, 42, 255));
+            var playerSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Aseprite/Player.png");
+            if (playerSprite == null)
+                playerSprite = GetOrCreateSprite($"{ArtDir}/ph_player.png", 12, 20, new Color32(92, 64, 42, 255));
             var npcSprite = GetOrCreateSprite($"{ArtDir}/ph_npc.png", 14, 22, new Color32(55, 48, 42, 255));
             var catSprite = GetOrCreateSprite($"{ArtDir}/ph_cat.png", 10, 8, new Color32(180, 90, 40, 255));
             var gateSprite = GetOrCreateSprite($"{ArtDir}/ph_gate.png", 16, 24, new Color32(70, 55, 40, 255));
@@ -187,8 +190,8 @@ namespace TikhayaTropa.EditorTools
             var groundVis = NewSpriteObject("MeadowGround", groundS, new Vector3(4f, floorY, 0f), new Vector3(13f, 0.2f, 1f), 0);
             groundVis.GetComponent<SpriteRenderer>().color = new Color(0.78f, 0.84f, 0.58f, 1f);
 
-            var playerFeetY = floorTop + 0.425f;
-            var player = NewSpriteObject("Player", playerS, new Vector3(-7.5f, playerFeetY, 0f), Vector3.one);
+            var playerCenterY = PlayerSpawnCenterY(floorTop, playerS);
+            var player = NewSpriteObject("Player", playerS, new Vector3(-7.5f, playerCenterY, 0f), Vector3.one);
             player.tag = "Player";
             var prb = player.AddComponent<Rigidbody2D>();
             prb.gravityScale = 2.2f;
@@ -196,7 +199,7 @@ namespace TikhayaTropa.EditorTools
             prb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             prb.interpolation = RigidbodyInterpolation2D.Interpolate;
             var pcol = player.AddComponent<BoxCollider2D>();
-            pcol.size = new Vector2(0.5f, 0.85f);
+            SetupPlayerCollider(pcol, playerS);
             var pc = player.AddComponent<PlayerController>();
             So(pc, "inputActions", input);
             var pint = player.AddComponent<PlayerInteraction>();
@@ -319,8 +322,8 @@ namespace TikhayaTropa.EditorTools
             var groundVis = NewSpriteObject("FogGroundStrip", groundS, new Vector3(4f, floorY, 0f), new Vector3(13f, 0.2f, 1f), 0);
             groundVis.GetComponent<SpriteRenderer>().color = new Color(0.55f, 0.58f, 0.5f, 1f);
 
-            var playerFeetY = floorTop + 0.425f;
-            var player = NewSpriteObject("Player", playerS, new Vector3(-7.5f, playerFeetY, 0f), Vector3.one);
+            var playerCenterY = PlayerSpawnCenterY(floorTop, playerS);
+            var player = NewSpriteObject("Player", playerS, new Vector3(-7.5f, playerCenterY, 0f), Vector3.one);
             player.tag = "Player";
             var prb = player.AddComponent<Rigidbody2D>();
             prb.gravityScale = 2.2f;
@@ -328,7 +331,7 @@ namespace TikhayaTropa.EditorTools
             prb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
             prb.interpolation = RigidbodyInterpolation2D.Interpolate;
             var pcol = player.AddComponent<BoxCollider2D>();
-            pcol.size = new Vector2(0.5f, 0.85f);
+            SetupPlayerCollider(pcol, playerS);
             var pc = player.AddComponent<PlayerController>();
             So(pc, "inputActions", input);
             var pint = player.AddComponent<PlayerInteraction>();
@@ -544,10 +547,11 @@ namespace TikhayaTropa.EditorTools
         {
             var rt = CreateUiChild("InteractionPrompt", parent);
             var root = rt.gameObject;
-            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
+            // Центр холста: anchoredPosition задаётся из WorldToScreen (пивот снизу — «ножка» над объектом).
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0f);
-            rt.anchoredPosition = new Vector2(0f, 14f);
-            rt.sizeDelta = new Vector2(520f, 40f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = new Vector2(400f, 40f);
 
             var cg = root.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
@@ -681,6 +685,31 @@ namespace TikhayaTropa.EditorTools
             return go;
         }
 
+        /// <summary>Центр игрока по Y: пол + половина высоты спрайта в юнитах (пивот спрайта — центр).</summary>
+        static float PlayerSpawnCenterY(float floorTop, Sprite playerSprite)
+        {
+            var path = playerSprite != null ? AssetDatabase.GetAssetPath(playerSprite) : string.Empty;
+            if (path.IndexOf("Aseprite/Player.png", StringComparison.OrdinalIgnoreCase) >= 0)
+                return floorTop + 1.25f;
+            return floorTop + 0.625f;
+        }
+
+        /// <summary>Коллайдер без offset; центр совпадает с transform (как у спрайта с пивотом по центру).</summary>
+        static void SetupPlayerCollider(BoxCollider2D pcol, Sprite playerSprite)
+        {
+            var path = playerSprite != null ? AssetDatabase.GetAssetPath(playerSprite) : string.Empty;
+            if (path.IndexOf("Aseprite/Player.png", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                pcol.offset = Vector2.zero;
+                pcol.size = new Vector2(0.55f, 2.5f);
+            }
+            else
+            {
+                pcol.offset = Vector2.zero;
+                pcol.size = new Vector2(0.5f, 1.25f);
+            }
+        }
+
         static GameObject NewTriggerZone(string name, Vector3 pos, Vector2 size)
         {
             var go = new GameObject(name);
@@ -774,35 +803,35 @@ namespace TikhayaTropa.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
         }
 
-        static void So(Object comp, string field, Object value)
+        static void So(UnityEngine.Object comp, string field, UnityEngine.Object value)
         {
             var so = new SerializedObject(comp);
             so.FindProperty(field).objectReferenceValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void SoText(Object comp, string field, string value)
+        static void SoText(UnityEngine.Object comp, string field, string value)
         {
             var so = new SerializedObject(comp);
             so.FindProperty(field).stringValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void SoInt(Object comp, string field, int value)
+        static void SoInt(UnityEngine.Object comp, string field, int value)
         {
             var so = new SerializedObject(comp);
             so.FindProperty(field).intValue = value;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void SoEnum(Object comp, string field, int enumIndex)
+        static void SoEnum(UnityEngine.Object comp, string field, int enumIndex)
         {
             var so = new SerializedObject(comp);
             so.FindProperty(field).enumValueIndex = enumIndex;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void SoVector3(Object comp, string field, Vector3 value)
+        static void SoVector3(UnityEngine.Object comp, string field, Vector3 value)
         {
             var so = new SerializedObject(comp);
             so.FindProperty(field).vector3Value = value;
@@ -811,7 +840,7 @@ namespace TikhayaTropa.EditorTools
 
         static void EnsureEventSystem()
         {
-            if (Object.FindFirstObjectByType<EventSystem>() != null) return;
+            if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null) return;
             var go = new GameObject("EventSystem");
             go.AddComponent<EventSystem>();
             go.AddComponent<InputSystemUIInputModule>();
@@ -889,7 +918,10 @@ namespace TikhayaTropa.EditorTools
                     Undo.RecordObject(rb, "RB gravity");
                     rb.gravityScale = 2.2f;
                 }
-                player.transform.position = new Vector3(-7.5f, standY, 0f);
+
+                var srPlayer = player.GetComponent<SpriteRenderer>();
+                var playerY = PlayerSpawnCenterY(floorTop, srPlayer != null ? srPlayer.sprite : null);
+                player.transform.position = new Vector3(-7.5f, playerY, 0f);
             }
 
             void MoveRoot(string objectName, float x)

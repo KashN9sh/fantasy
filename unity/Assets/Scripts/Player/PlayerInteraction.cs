@@ -64,18 +64,23 @@ namespace TikhayaTropa.Player
                 return;
             }
 
-            _current = FindBestInteractable(st);
-            InteractionPromptHUD.Instance?.SetPrompt(_current != null && (st == null || _current.CanInteract(st))
-                ? _current.PromptText
-                : null);
+            _current = FindBestInteractable(st, out var promptCol);
+            if (_current != null && (st == null || _current.CanInteract(st)) && promptCol != null)
+            {
+                var tip = _current.GetPromptWorldPosition(promptCol);
+                InteractionPromptHUD.Instance?.SetPrompt(_current.PromptText, tip);
+            }
+            else
+                InteractionPromptHUD.Instance?.SetPrompt(null);
 
             if (!_interact.WasPressedThisFrame() || _current == null || st == null) return;
             if (!_current.CanInteract(st)) return;
             _current.Interact(st);
         }
 
-        IInteractable FindBestInteractable(GameState state)
+        IInteractable FindBestInteractable(GameState state, out Collider2D promptCollider)
         {
+            promptCollider = null;
             var col = GetComponent<Collider2D>();
             var pos = col != null ? (Vector2)col.bounds.center : (Vector2)transform.position;
             var hits = Physics2D.OverlapCircleAll(pos, radius, interactableLayers);
@@ -91,8 +96,10 @@ namespace TikhayaTropa.Player
                     if (d >= bestD) continue;
                     bestD = d;
                     best = inter;
+                    promptCollider = c;
                 }
             }
+
             return best;
         }
 

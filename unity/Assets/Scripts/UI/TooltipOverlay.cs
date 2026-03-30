@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace TikhayaTropa.UI
@@ -47,10 +48,13 @@ namespace TikhayaTropa.UI
         {
             if (!_visible || panel == null || _canvas == null) return;
 
+            var mouse = Mouse.current;
+            if (mouse == null) return;
+
             var canvasRt = _canvas.transform as RectTransform;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 canvasRt,
-                (Vector2)Input.mousePosition + screenOffset,
+                mouse.position.ReadValue() + screenOffset,
                 _canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _canvas.worldCamera,
                 out var local);
             panel.anchoredPosition = local;

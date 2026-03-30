@@ -6,6 +6,7 @@ namespace TikhayaTropa.Player
 {
     /// <summary>
     /// Сайдскроллер: горизонталь с сохранением вертикальной скорости (гравитация), прыжок, проверка земли (raycast).
+    /// Анимация: 4 кадра ходьбы вправо (flipX влево) + 4 кадра idle спереди.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(BoxCollider2D))]
@@ -23,6 +24,13 @@ namespace TikhayaTropa.Player
         [SerializeField] LayerMask groundLayers = ~0;
         [SerializeField] float groundCheckDistance = 0.08f;
         [SerializeField] float skinWidth = 0.02f;
+        [Header("Animation")]
+        [Tooltip("Кадры 0–3: шаг вправо. Пусто — только flipX без смены спрайта.")]
+        [SerializeField] Sprite[] walkRightSprites = new Sprite[4];
+        [Tooltip("Кадры 0–3: idle спереди.")]
+        [SerializeField] Sprite[] idleSprites = new Sprite[4];
+        [SerializeField] float walkFrameRate = 9f;
+        [SerializeField] float idleFrameRate = 3f;
 
         Rigidbody2D _rb;
         BoxCollider2D _col;
@@ -33,6 +41,9 @@ namespace TikhayaTropa.Player
 
         float _lastOnGroundTime;
         float _lastJumpPressedTime;
+        bool _grounded;
+        float _walkPhase;
+        float _idlePhase;
 
         static readonly RaycastHit2D[] RayHits = new RaycastHit2D[4];
 
@@ -69,11 +80,12 @@ namespace TikhayaTropa.Player
             if (GameState.Instance != null && GameState.Instance.InputFrozen)
             {
                 _rb.linearVelocity = Vector2.zero;
+                _grounded = false;
                 return;
             }
 
-            var grounded = CheckGrounded();
-            if (grounded)
+            _grounded = CheckGrounded();
+            if (_grounded)
                 _lastOnGroundTime = coyoteTime;
             else
                 _lastOnGroundTime -= Time.fixedDeltaTime;
@@ -90,9 +102,6 @@ namespace TikhayaTropa.Player
             v.x = moveX * speed;
             _rb.linearVelocity = v;
 
-            if (_sprite != null && Mathf.Abs(moveX) > 0.05f)
-                _sprite.flipX = moveX < 0f;
-
             var canJump = _lastOnGroundTime > 0f && _lastJumpPressedTime > 0f;
             if (canJump)
             {
@@ -103,6 +112,49 @@ namespace TikhayaTropa.Player
                 _lastJumpPressedTime = 0f;
             }
         }
+
+        void LateUpdate()
+        {
+            if (_sprite == null) return;
+
+            if (GameState.Instance != null && GameState.Instance.InputFrozen)
+            {
+                if (idleSprites != null && idleSprites.Length > 0 && idleSprites[0] != null)
+                    _sprite.sprite = idleSprites[0];
+                _sprite.flipX = false;
+                return;
+            }
+
+            var moveX = _move.ReadValue<Vector2>().x;
+            if (Mathf.Abs(moveX) > 1f) moveX = Mathf.Sign(moveX);
+
+            var wantsMove = Mathf.Abs(moveX) > 0.05f;
+            var useWalk = wantsMove;
+
+            if (HasFour(walkRightSprites) && HasFour(idleSprites))
+            {
+                if (useWalk)
+                {
+                    _walkPhase += Time.deltaTime * walkFrameRate;
+                    var wi = Mathf.FloorToInt(_walkPhase) % 4;
+                    var s = walkRightSprites[wi];
+                    if (s != null) _sprite.sprite = s;
+                    _sprite.flipX = moveX < 0f;
+                }
+                else
+                {
+                    _idlePhase += Time.deltaTime * idleFrameRate;
+                    var ii = Mathf.FloorToInt(_idlePhase) % 4;
+                    var s = idleSprites[ii];
+                    if (s != null) _sprite.sprite = s;
+                    _sprite.flipX = false;
+                }
+            }
+            else if (Mathf.Abs(moveX) > 0.05f)
+                _sprite.flipX = moveX < 0f;
+        }
+
+        static bool HasFour(Sprite[] a) => a != null && a.Length >= 4 && a[0] != null && a[1] != null && a[2] != null && a[3] != null;
 
         bool CheckGrounded()
         {
