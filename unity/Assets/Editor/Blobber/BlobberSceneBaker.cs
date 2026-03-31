@@ -5,6 +5,7 @@ using System.Linq;
 using TikhayaTropa.Blobber;
 using TikhayaTropa.Blobber.Data;
 using TikhayaTropa.Blobber.Runtime;
+using TikhayaTropa.Blobber.Runtime.Visual;
 using TikhayaTropa.Core;
 using TikhayaTropa.UI;
 using UnityEditor;
@@ -55,11 +56,14 @@ namespace TikhayaTropa.EditorTools.Blobber
             So(director, "startPoint", start.transform);
 
             BuildUi();
+            var atlas = settings != null ? settings.spriteAnimationAtlas : null;
+            atlas ??= FindAnySpriteAnimationAtlas();
             BuildObjects(
                 map,
                 settings != null ? settings.objectCatalog : null,
                 settings != null ? settings.dialogueDatabase : null,
-                settings != null ? settings.logicGraphDatabase : null);
+                settings != null ? settings.logicGraphDatabase : null,
+                atlas);
             EnsureEventSystem();
 
             EditorSceneManager.SaveScene(scene, outPath);
@@ -80,6 +84,14 @@ namespace TikhayaTropa.EditorTools.Blobber
             if (guids.Length == 0) return null;
             var path = AssetDatabase.GUIDToAssetPath(guids[0]);
             return AssetDatabase.LoadAssetAtPath<BlobberProjectSettings>(path);
+        }
+
+        static TikhayaTropa.Animation.SpriteAnimationAtlas FindAnySpriteAnimationAtlas()
+        {
+            var guids = AssetDatabase.FindAssets("t:SpriteAnimationAtlas");
+            if (guids == null || guids.Length == 0) return null;
+            var path = AssetDatabase.GUIDToAssetPath(guids[0]);
+            return AssetDatabase.LoadAssetAtPath<TikhayaTropa.Animation.SpriteAnimationAtlas>(path);
         }
 
         static void BuildLighting()
@@ -122,7 +134,7 @@ namespace TikhayaTropa.EditorTools.Blobber
             return fps;
         }
 
-        static void BuildObjects(BlobberMapAsset map, BlobberObjectCatalog catalog, BlobberDialogueDatabase db, BlobberLogicGraphDatabase logicDb)
+        static void BuildObjects(BlobberMapAsset map, BlobberObjectCatalog catalog, BlobberDialogueDatabase db, BlobberLogicGraphDatabase logicDb, TikhayaTropa.Animation.SpriteAnimationAtlas spriteAtlas)
         {
             var root = new GameObject("BlobberObjects");
             foreach (var obj in map.objects)
@@ -131,16 +143,104 @@ namespace TikhayaTropa.EditorTools.Blobber
                 var primitive = entry != null ? entry.previewPrimitive : PrimitiveType.Cylinder;
                 var color = entry != null ? entry.previewColor : map.markerColor;
                 var scale = entry != null ? entry.defaultScale : new Vector3(0.45f, 1.1f, 0.45f);
+                var visualKind = entry != null ? entry.visualKind : BlobberVisualKind.Primitive;
+                var useBillboard = entry == null || entry.useBillboard;
+                var linkSpriteScaleXY = entry == null || entry.spriteScaleMode == BlobberSpriteScaleMode.LinkedXY;
+                var fallbackToPrimitive = false;
+                var minLocalY = 0f;
+                var hasSpriteVisual = false;
+                var spriteAspect = 1f;
 
-                var go = GameObject.CreatePrimitive(primitive);
+                GameObject go;
+                if (visualKind == BlobberVisualKind.Primitive)
+                {
+                    go = GameObject.CreatePrimitive(primitive);
+                }
+                else
+                {
+                    go = new GameObject("SpriteObject");
+                    var sr = go.AddComponent<SpriteRenderer>();
+                    if (visualKind == BlobberVisualKind.Sprite)
+                    {
+                        sr.sprite = entry != null ? entry.spriteAsset : null;
+                        if (sr.sprite == null)
+                            fallbackToPrimitive = true;
+                        else
+                        {
+                            hasSpriteVisual = true;
+                            minLocalY = sr.sprite.bounds.min.y;
+                            var s = sr.sprite.bounds.size;
+                            if (s.y > 0.0001f) spriteAspect = s.x / s.y;
+                        }
+                    }
+                    else if (visualKind == BlobberVisualKind.Animation && entry != null && spriteAtlas != null)
+                    {
+                        var clip = spriteAtlas.clips != null
+                            ? spriteAtlas.clips.FirstOrDefault(c => c != null && c.id == entry.animationClipId)
+                            : null;
+                        if (clip != null && clip.frames != null && clip.frames.Count > 0)
+                        {
+                            sr.sprite = clip.frames[0];
+                            hasSpriteVisual = true;
+                            minLocalY = clip.frames.Min(f => f != null ? f.bounds.min.y : 0f);
+                            var maxW = 0f;
+                            var maxH = 0f;
+                            foreach (var f in clip.frames)
+                            {
+                                if (f == null) continue;
+                                var s = f.bounds.size;
+                                maxW = Mathf.Max(maxW, s.x);
+                                maxH = Mathf.Max(maxH, s.y);
+                            }
+                            if (maxH > 0.0001f) spriteAspect = maxW / maxH;
+                            var player = go.AddComponent<BlobberSpriteAnimationPlayer>();
+                            player.spriteRenderer = sr;
+                            player.frames = new List<Sprite>(clip.frames);
+                            player.framesPerSecond = Mathf.Max(0.1f, clip.framesPerSecond);
+                            player.loop = true;
+                        }
+                        else
+                        {
+                            fallbackToPrimitive = true;
+                            Debug.LogWarning($"Animation clip '{entry.animationClipId}' not found or empty for object '{obj.id}' in atlas '{spriteAtlas.name}'.");
+                        }
+                    }
+                    else if (visualKind == BlobberVisualKind.Animation)
+                    {
+                        fallbackToPrimitive = true;
+                        Debug.LogWarning($"Animation atlas missing for object '{obj.id}' (clip '{entry?.animationClipId}').");
+                    }
+
+                    if (useBillboard)
+                        go.AddComponent<BlobberBillboard>();
+
+                    // Для интеракта через Physics.Raycast спрайт-объекту нужен 3D-коллайдер.
+                    EnsureSpriteCollider(go, visualKind, entry, spriteAtlas);
+                }
+
+                if (fallbackToPrimitive)
+                {
+                    UnityEngine.Object.DestroyImmediate(go);
+                    go = GameObject.CreatePrimitive(primitive);
+                    Debug.LogWarning($"Bake fallback to primitive for object '{obj.id}': missing sprite/animation data.");
+                }
+
                 go.transform.SetParent(root.transform, false);
                 go.name = string.IsNullOrEmpty(obj.id) ? $"Object_{obj.cell.x}_{obj.cell.y}" : obj.id;
-                go.transform.position = map.CellCenter(obj.cell.x, obj.cell.y, obj.yOffset);
+                var groundY = obj.yOffset;
+                // Совместимость со старыми картами: legacy yOffset=0.6 был рассчитан под примитивы.
+                if (hasSpriteVisual && Mathf.Abs(groundY - 0.6f) < 0.0001f)
+                    groundY = 0f;
+                if (hasSpriteVisual && linkSpriteScaleXY)
+                    scale.x = Mathf.Max(0.01f, scale.y * Mathf.Max(0.01f, spriteAspect)); // Пропорциональный XY-скейл.
+                if (hasSpriteVisual)
+                    groundY -= minLocalY * scale.y; // Прижимаем низ спрайта к полу с учетом pivot.
+                go.transform.position = map.CellCenter(obj.cell.x, obj.cell.y, groundY);
                 go.transform.rotation = Quaternion.Euler(0f, obj.yaw, 0f);
                 go.transform.localScale = scale;
 
                 var r = go.GetComponent<Renderer>();
-                if (r != null)
+                if (r != null && visualKind == BlobberVisualKind.Primitive)
                 {
                     var m = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
                     if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", color);
@@ -150,6 +250,52 @@ namespace TikhayaTropa.EditorTools.Blobber
 
                 BlobberRuntimeInteractableFactory.Build(go, obj, db, logicDb);
             }
+        }
+
+        static void EnsureSpriteCollider(GameObject go, BlobberVisualKind kind, BlobberObjectCatalogEntry entry, TikhayaTropa.Animation.SpriteAnimationAtlas spriteAtlas)
+        {
+            if (go == null) return;
+            var col = go.GetComponent<BoxCollider>();
+            if (col == null) col = go.AddComponent<BoxCollider>();
+
+            var min = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+            var max = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+            var has = false;
+
+            void Include(Sprite s)
+            {
+                if (s == null) return;
+                var b = s.bounds;
+                min = Vector2.Min(min, b.min);
+                max = Vector2.Max(max, b.max);
+                has = true;
+            }
+
+            if (kind == BlobberVisualKind.Sprite)
+            {
+                Include(entry != null ? entry.spriteAsset : null);
+            }
+            else if (kind == BlobberVisualKind.Animation && entry != null && spriteAtlas != null && spriteAtlas.clips != null)
+            {
+                var clip = spriteAtlas.clips.FirstOrDefault(c => c != null && c.id == entry.animationClipId);
+                if (clip != null && clip.frames != null)
+                {
+                    foreach (var f in clip.frames)
+                        Include(f);
+                }
+            }
+
+            if (!has)
+            {
+                col.center = new Vector3(0f, 0.5f, 0f);
+                col.size = new Vector3(0.6f, 1f, 0.2f);
+                return;
+            }
+
+            var center = (min + max) * 0.5f;
+            var size = max - min;
+            col.center = new Vector3(center.x, center.y, 0f);
+            col.size = new Vector3(Mathf.Max(0.05f, size.x), Mathf.Max(0.05f, size.y), 0.2f);
         }
 
         static void ApplyMapToGeometry(BlobberDungeonGeometry geo, BlobberMapAsset map)

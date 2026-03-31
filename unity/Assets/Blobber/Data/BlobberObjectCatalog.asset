@@ -15,8 +15,13 @@ MonoBehaviour:
   entries:
   - id: inspect
     displayName: Inspect
+    visualKind: 0
     previewPrimitive: 3
     previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    spriteAsset: {fileID: 0}
+    animationClipId: 
+    useBillboard: 1
+    spriteScaleMode: 0
     interactionType: 0
     defaultParams:
       prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
@@ -35,8 +40,13 @@ MonoBehaviour:
     defaultScale: {x: 0.45, y: 1.1, z: 0.45}
   - id: npc
     displayName: NPC Dialogue
+    visualKind: 0
     previewPrimitive: 1
     previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    spriteAsset: {fileID: 0}
+    animationClipId: 
+    useBillboard: 1
+    spriteScaleMode: 0
     interactionType: 1
     defaultParams:
       prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
@@ -55,8 +65,13 @@ MonoBehaviour:
     defaultScale: {x: 0.45, y: 1.1, z: 0.45}
   - id: door
     displayName: Door Transition
+    visualKind: 0
     previewPrimitive: 2
     previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    spriteAsset: {fileID: 0}
+    animationClipId: 
+    useBillboard: 1
+    spriteScaleMode: 0
     interactionType: 2
     defaultParams:
       prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
@@ -75,12 +90,17 @@ MonoBehaviour:
     defaultScale: {x: 0.45, y: 1.1, z: 0.45}
   - id: cat
     displayName: "Cat Scare \u0445\u0438\u0445\u0438"
+    visualKind: 2
     previewPrimitive: 1
     previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    spriteAsset: {fileID: -4863501614738827536, guid: 5f2e1c3c9a470498aab2b8b8b7514ef3, type: 3}
+    animationClipId: idle
+    useBillboard: 1
+    spriteScaleMode: 0
     interactionType: 3
     defaultParams:
       prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C33"
-      message: 
+      message: "\u042F  \u0442\u0432\u043E\u0439 \u0440\u043E\u0442 \u0435\u0431\u0430\u043B"
       setFlag: 
       requireFlag: 
       diaryId: 
@@ -92,11 +112,16 @@ MonoBehaviour:
       customPayload: 
       logicGraphId: 
       setChapterAct: 0
-    defaultScale: {x: 0.45, y: 1.1, z: 0.45}
+    defaultScale: {x: 1.35, y: 2.25, z: 4.15}
   - id: object
     displayName: "\u0417\u0430\u043B\u0443\u043F\u04302"
+    visualKind: 1
     previewPrimitive: 0
     previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    spriteAsset: {fileID: -4863501614738827536, guid: 5f2e1c3c9a470498aab2b8b8b7514ef3, type: 3}
+    animationClipId: 
+    useBillboard: 1
+    spriteScaleMode: 0
     interactionType: 0
     defaultParams:
       prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"

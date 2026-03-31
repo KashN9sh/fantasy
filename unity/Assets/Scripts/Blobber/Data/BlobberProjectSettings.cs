@@ -1,4 +1,5 @@
 using UnityEngine;
+using TikhayaTropa.Animation;
 
 namespace TikhayaTropa.Blobber.Data
 {
@@ -8,5 +9,6 @@ namespace TikhayaTropa.Blobber.Data
         public BlobberObjectCatalog objectCatalog;
         public BlobberDialogueDatabase dialogueDatabase;
         public BlobberLogicGraphDatabase logicGraphDatabase;
+        public SpriteAnimationAtlas spriteAnimationAtlas;
     }
 }

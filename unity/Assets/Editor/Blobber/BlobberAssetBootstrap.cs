@@ -53,6 +53,13 @@ namespace TikhayaTropa.EditorTools.Blobber
                 AssetDatabase.CreateAsset(logicDb, logicPath);
             }
 
+            var spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAnimationAtlas>(spriteAtlasPath);
+            if (spriteAtlas == null)
+            {
+                spriteAtlas = ScriptableObject.CreateInstance<SpriteAnimationAtlas>();
+                AssetDatabase.CreateAsset(spriteAtlas, spriteAtlasPath);
+            }
+
             var settings = AssetDatabase.LoadAssetAtPath<BlobberProjectSettings>(settingsPath);
             if (settings == null)
             {
@@ -60,6 +67,7 @@ namespace TikhayaTropa.EditorTools.Blobber
                 settings.objectCatalog = catalog;
                 settings.dialogueDatabase = db;
                 settings.logicGraphDatabase = logicDb;
+                settings.spriteAnimationAtlas = spriteAtlas;
                 AssetDatabase.CreateAsset(settings, settingsPath);
             }
             else
@@ -67,14 +75,8 @@ namespace TikhayaTropa.EditorTools.Blobber
                 settings.objectCatalog = settings.objectCatalog == null ? catalog : settings.objectCatalog;
                 settings.dialogueDatabase = settings.dialogueDatabase == null ? db : settings.dialogueDatabase;
                 settings.logicGraphDatabase = settings.logicGraphDatabase == null ? logicDb : settings.logicGraphDatabase;
+                settings.spriteAnimationAtlas = settings.spriteAnimationAtlas == null ? spriteAtlas : settings.spriteAnimationAtlas;
                 EditorUtility.SetDirty(settings);
-            }
-
-            var spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAnimationAtlas>(spriteAtlasPath);
-            if (spriteAtlas == null)
-            {
-                spriteAtlas = ScriptableObject.CreateInstance<SpriteAnimationAtlas>();
-                AssetDatabase.CreateAsset(spriteAtlas, spriteAtlasPath);
             }
 
             AssetDatabase.SaveAssets();

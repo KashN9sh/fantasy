@@ -52,7 +52,7 @@ MonoBehaviour:
     yaw: 0
     parameters:
       prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C33"
-      message: 
+      message: "\u042F  \u0442\u0432\u043E\u0439 \u0440\u043E\u0442 \u0435\u0431\u0430\u043B"
       setFlag: 
       requireFlag: 
       diaryId: 
@@ -72,7 +72,7 @@ MonoBehaviour:
     yaw: 0
     parameters:
       prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C33"
-      message: 
+      message: "\u042F  \u0442\u0432\u043E\u0439 \u0440\u043E\u0442 \u0435\u0431\u0430\u043B"
       setFlag: 
       requireFlag: 
       diaryId: 
@@ -87,11 +87,51 @@ MonoBehaviour:
   - id: cat-2
     catalogId: cat
     interactionType: 3
-    cell: {x: 1, y: 7}
+    cell: {x: 1, y: 6}
     yOffset: 0.6
     yaw: 0
     parameters:
       prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C33"
+      message: "\u042F  \u0442\u0432\u043E\u0439 \u0440\u043E\u0442 \u0435\u0431\u0430\u043B"
+      setFlag: 
+      requireFlag: 
+      diaryId: 
+      diaryText: 
+      dialogueId: 
+      targetScene: 
+      targetSpawn: 
+      customActionId: 
+      customPayload: 
+      logicGraphId: 
+      setChapterAct: 0
+  - id: object
+    catalogId: object
+    interactionType: 0
+    cell: {x: 2, y: 7}
+    yOffset: 0.6
+    yaw: 0
+    parameters:
+      prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+      message: 
+      setFlag: 
+      requireFlag: 
+      diaryId: 
+      diaryText: 
+      dialogueId: 
+      targetScene: 
+      targetSpawn: 
+      customActionId: 
+      customPayload: 
+      logicGraphId: 
+      setChapterAct: 0
+  - id: object-1
+    catalogId: object
+    interactionType: 0
+    cell: {x: 2, y: 7}
+    yOffset: 0.6
+    yaw: 0
+    parameters:
+      prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
       message: 
       setFlag: 
       requireFlag: 
