@@ -30,6 +30,7 @@ namespace TikhayaTropa.EditorTools.Blobber
         string _selectedCatalogId = string.Empty;
         string _librarySearch = string.Empty;
         string _pendingMultilineEnterControl = string.Empty;
+        string _pendingCatalogSyncId = string.Empty;
 
         [MenuItem("TikhayaTropa/Map Editor")]
         static void Open() => GetWindow<BlobberMapEditorWindow>("Map Editor");
@@ -37,6 +38,15 @@ namespace TikhayaTropa.EditorTools.Blobber
         void OnEnable()
         {
             _settings = FindProjectSettings();
+        }
+
+        void OnFocus()
+        {
+            if (string.IsNullOrWhiteSpace(_pendingCatalogSyncId))
+                return;
+
+            ApplyCatalogDefaultsToPlacedObjects(_pendingCatalogSyncId);
+            _pendingCatalogSyncId = string.Empty;
         }
 
         void OnGUI()
@@ -122,6 +132,7 @@ namespace TikhayaTropa.EditorTools.Blobber
                 if (GUILayout.Button("Create Library Item"))
                 {
                     CreateCatalogEntry(catalog);
+                    GUIUtility.ExitGUI();
                 }
                 return;
             }
@@ -134,8 +145,10 @@ namespace TikhayaTropa.EditorTools.Blobber
             _libraryScroll = EditorGUILayout.BeginScrollView(_libraryScroll, GUILayout.Height(180));
             var search = string.IsNullOrWhiteSpace(_librarySearch) ? string.Empty : _librarySearch.ToLowerInvariant();
             var e = Event.current;
-            foreach (var entry in catalog.entries)
+            var catalogIndexToDelete = -1;
+            for (var i = 0; i < catalog.entries.Count; i++)
             {
+                var entry = catalog.entries[i];
                 if (!string.IsNullOrEmpty(search))
                 {
                     var id = entry.id ?? string.Empty;
@@ -146,8 +159,12 @@ namespace TikhayaTropa.EditorTools.Blobber
 
                 var selected = entry.id == _selectedCatalogId;
                 var label = string.IsNullOrWhiteSpace(entry.displayName) ? entry.id : $"{entry.displayName} ({entry.id})";
+                EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Toggle(selected, label, "Button"))
                     _selectedCatalogId = entry.id;
+                if (GUILayout.Button("x", GUILayout.Width(22f)))
+                    catalogIndexToDelete = i;
+                EditorGUILayout.EndHorizontal();
 
                 var itemRect = GUILayoutUtility.GetLastRect();
                 if (e.type == EventType.MouseDrag && itemRect.Contains(e.mousePosition))
@@ -159,15 +176,29 @@ namespace TikhayaTropa.EditorTools.Blobber
                     DragAndDrop.StartDrag($"Blobber:{entry.id}");
                     e.Use();
                 }
+
+                if (catalogIndexToDelete >= 0) break;
             }
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
 
+            if (catalogIndexToDelete >= 0)
+            {
+                DeleteCatalogEntry(catalog, catalogIndexToDelete);
+                GUIUtility.ExitGUI();
+            }
+
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button("Create Library Item"))
+            {
                 CreateCatalogEntry(catalog);
+                GUIUtility.ExitGUI();
+            }
             if (GUILayout.Button("Edit Selected..."))
+            {
                 OpenSelectedCatalogItemEditor();
+                GUIUtility.ExitGUI();
+            }
             EditorGUILayout.EndHorizontal();
         }
 
@@ -291,20 +322,28 @@ namespace TikhayaTropa.EditorTools.Blobber
         void DrawObjectMovePanel()
         {
             EditorGUILayout.LabelField("Objects", EditorStyles.boldLabel);
+            var objectIndexToDelete = -1;
             for (var i = 0; i < _map.objects.Count; i++)
             {
                 var o = _map.objects[i];
                 var selected = i == _selectedObject;
+                EditorGUILayout.BeginHorizontal();
                 if (GUILayout.Toggle(selected, $"{o.id} ({o.interactionType}) @ {o.cell}", "Button"))
                     SelectObjectIndex(i);
+                if (GUILayout.Button("x", GUILayout.Width(22f)))
+                    objectIndexToDelete = i;
+                EditorGUILayout.EndHorizontal();
+                if (objectIndexToDelete >= 0) break;
             }
 
-            if (_selectedObject >= 0 && _selectedObject < _map.objects.Count && GUILayout.Button("Delete Selected"))
+            if (objectIndexToDelete >= 0)
             {
                 Undo.RecordObject(_map, "Delete object");
-                _map.objects.RemoveAt(_selectedObject);
-                _selectedObject = -1;
+                _map.objects.RemoveAt(objectIndexToDelete);
+                if (_selectedObject == objectIndexToDelete) _selectedObject = -1;
+                else if (_selectedObject > objectIndexToDelete) _selectedObject--;
                 EditorUtility.SetDirty(_map);
+                GUIUtility.ExitGUI();
             }
 
             if (_selectedObject >= 0 && _selectedObject < _map.objects.Count)
@@ -465,6 +504,27 @@ namespace TikhayaTropa.EditorTools.Blobber
             Repaint();
         }
 
+        void DeleteCatalogEntry(BlobberObjectCatalog catalog, int index)
+        {
+            if (catalog == null || index < 0 || index >= catalog.entries.Count)
+                return;
+
+            var entry = catalog.entries[index];
+            var label = string.IsNullOrWhiteSpace(entry?.displayName) ? (entry?.id ?? $"#{index}") : entry.displayName;
+            if (!EditorUtility.DisplayDialog("Asset Library", $"Удалить элемент '{label}'?", "Delete", "Cancel"))
+                return;
+
+            Undo.RecordObject(catalog, "Delete catalog entry");
+            catalog.entries.RemoveAt(index);
+            if (catalog.entries.Count > 0 && (string.IsNullOrWhiteSpace(_selectedCatalogId) || !catalog.entries.Any(e => e.id == _selectedCatalogId)))
+                _selectedCatalogId = catalog.entries[0].id;
+            else if (catalog.entries.Count == 0)
+                _selectedCatalogId = string.Empty;
+            EditorUtility.SetDirty(catalog);
+            AssetDatabase.SaveAssets();
+            Repaint();
+        }
+
         void OpenSelectedCatalogItemEditor()
         {
             var catalog = _settings != null ? _settings.objectCatalog : null;
@@ -474,7 +534,39 @@ namespace TikhayaTropa.EditorTools.Blobber
                 return;
             }
 
+            _pendingCatalogSyncId = _selectedCatalogId;
             BlobberCatalogEntryModalWindow.Open(catalog, _selectedCatalogId);
+        }
+
+        void ApplyCatalogDefaultsToPlacedObjects(string catalogId)
+        {
+            if (_map == null || _settings == null || _settings.objectCatalog == null || string.IsNullOrWhiteSpace(catalogId))
+                return;
+
+            var entry = _settings.objectCatalog.Find(catalogId);
+            if (entry == null)
+                return;
+
+            var changed = false;
+            Undo.RecordObject(_map, "Apply library defaults to placed objects");
+            foreach (var obj in _map.objects)
+            {
+                if (obj == null || obj.catalogId != catalogId)
+                    continue;
+
+                obj.interactionType = entry.interactionType;
+                obj.parameters = entry.defaultParams != null
+                    ? JsonUtility.FromJson<BlobberObjectParams>(JsonUtility.ToJson(entry.defaultParams))
+                    : new BlobberObjectParams();
+                changed = true;
+            }
+
+            if (!changed)
+                return;
+
+            EditorUtility.SetDirty(_map);
+            AssetDatabase.SaveAssets();
+            Repaint();
         }
 
         string CreateLogicGraphAndGetId(string seedId)
