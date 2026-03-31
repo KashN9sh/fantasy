@@ -163,11 +163,8 @@ namespace TikhayaTropa.EditorTools.Blobber
             if (node.nodeType == BlobberLogicNodeType.Action)
                 node.actionType = (BlobberLogicActionType)EditorGUILayout.EnumPopup("Action", node.actionType);
 
-            node.stringValue = EditorGUILayout.TextField("String A", node.stringValue);
-            node.stringValue2 = EditorGUILayout.TextField("String B", node.stringValue2);
-            node.floatValue = EditorGUILayout.FloatField("Float", node.floatValue);
-            node.intValue = EditorGUILayout.IntField("Int", node.intValue);
-            node.boolValue = EditorGUILayout.Toggle("Bool", node.boolValue);
+            EditorGUILayout.Space(4);
+            DrawTypedNodeParams(node);
 
             if (GUILayout.Button("Delete Node"))
             {
@@ -179,6 +176,96 @@ namespace TikhayaTropa.EditorTools.Blobber
                 AssetDatabase.SaveAssets();
 
             EditorUtility.SetDirty(_db);
+        }
+
+        void DrawTypedNodeParams(BlobberLogicNodeData node)
+        {
+            EditorGUILayout.LabelField("Params", EditorStyles.miniBoldLabel);
+            switch (node.nodeType)
+            {
+                case BlobberLogicNodeType.Event:
+                    DrawEventParams(node);
+                    break;
+                case BlobberLogicNodeType.Condition:
+                    DrawConditionParams(node);
+                    break;
+                case BlobberLogicNodeType.Action:
+                    DrawActionParams(node);
+                    break;
+            }
+        }
+
+        static void DrawEventParams(BlobberLogicNodeData node)
+        {
+            switch (node.eventType)
+            {
+                case BlobberLogicEventType.OnFlagChanged:
+                    node.stringValue = EditorGUILayout.TextField("Flag Name (optional)", node.stringValue);
+                    EditorGUILayout.HelpBox("Если пусто — срабатывает на любое изменение флага.", MessageType.None);
+                    break;
+                case BlobberLogicEventType.OnPlayerNear:
+                    node.floatValue = EditorGUILayout.FloatField("Distance Hint", Mathf.Max(0f, node.floatValue));
+                    EditorGUILayout.HelpBox("Событие тикает каждый кадр; обычно комбинируется с Condition DistanceLess.", MessageType.None);
+                    break;
+                default:
+                    EditorGUILayout.HelpBox("У этого события нет обязательных параметров.", MessageType.None);
+                    break;
+            }
+        }
+
+        static void DrawConditionParams(BlobberLogicNodeData node)
+        {
+            switch (node.conditionType)
+            {
+                case BlobberLogicConditionType.HasFlag:
+                    node.stringValue = EditorGUILayout.TextField("Flag Name", node.stringValue);
+                    node.boolValue = EditorGUILayout.Toggle("Must Be Set", node.boolValue);
+                    break;
+                case BlobberLogicConditionType.PlayerSpeedGreater:
+                    node.floatValue = EditorGUILayout.FloatField("Min Player Speed", Mathf.Max(0f, node.floatValue));
+                    break;
+                case BlobberLogicConditionType.DistanceLess:
+                    node.stringValue = EditorGUILayout.TextField("Target Name (self/player/object)", node.stringValue);
+                    node.floatValue = EditorGUILayout.FloatField("Max Distance", Mathf.Max(0.01f, node.floatValue));
+                    break;
+                case BlobberLogicConditionType.ObjectStateEquals:
+                    node.stringValue = EditorGUILayout.TextField("Object Name", node.stringValue);
+                    node.boolValue = EditorGUILayout.Toggle("Should Be Active", node.boolValue);
+                    break;
+            }
+        }
+
+        static void DrawActionParams(BlobberLogicNodeData node)
+        {
+            switch (node.actionType)
+            {
+                case BlobberLogicActionType.SetFlag:
+                    node.stringValue = EditorGUILayout.TextField("Flag Name", node.stringValue);
+                    node.boolValue = EditorGUILayout.Toggle("Set Value", node.boolValue);
+                    break;
+                case BlobberLogicActionType.MoveToMarker:
+                    node.stringValue = EditorGUILayout.TextField("Marker Name", node.stringValue);
+                    node.floatValue = EditorGUILayout.FloatField("Move Speed (0 = instant)", Mathf.Max(0f, node.floatValue));
+                    break;
+                case BlobberLogicActionType.PlayAnimation:
+                    node.stringValue = EditorGUILayout.TextField("Animation State Name", node.stringValue);
+                    node.stringValue2 = EditorGUILayout.TextField("Target Object Name (empty = self)", node.stringValue2);
+                    break;
+                case BlobberLogicActionType.SetSprite:
+                    node.stringValue = EditorGUILayout.TextField("Sprite Path in Resources", node.stringValue);
+                    node.stringValue2 = EditorGUILayout.TextField("Target Object Name (empty = self)", node.stringValue2);
+                    break;
+                case BlobberLogicActionType.ShowMessage:
+                    node.stringValue = EditorGUILayout.TextArea(node.stringValue, GUILayout.MinHeight(44f));
+                    break;
+                case BlobberLogicActionType.LoadScene:
+                    node.stringValue = EditorGUILayout.TextField("Scene Name", node.stringValue);
+                    break;
+                case BlobberLogicActionType.SetObjectActive:
+                    node.stringValue = EditorGUILayout.TextField("Target Object Name (empty = self)", node.stringValue);
+                    node.boolValue = EditorGUILayout.Toggle("Active", node.boolValue);
+                    break;
+            }
         }
 
         void DrawNodes(BlobberLogicGraphData graph, Rect canvasRect)
@@ -270,10 +357,11 @@ namespace TikhayaTropa.EditorTools.Blobber
         {
             if (_db == null) return;
             Undo.RecordObject(_db, "Create logic graph");
+            var graphId = MakeUniqueGraphId("graph");
             var g = new BlobberLogicGraphData
             {
-                graphId = Guid.NewGuid().ToString("N"),
-                displayName = $"Graph {_db.graphs.Count + 1}"
+                graphId = graphId,
+                displayName = graphId
             };
             _db.graphs.Add(g);
             _selectedGraphId = g.graphId;
@@ -310,6 +398,23 @@ namespace TikhayaTropa.EditorTools.Blobber
             new(canvasRect.x + node.editorPosition.x, canvasRect.y + node.editorPosition.y, 170f, 56f);
 
         static string Short(string id) => string.IsNullOrEmpty(id) ? "-" : id.Substring(0, Mathf.Min(6, id.Length));
+
+        string MakeUniqueGraphId(string seed)
+        {
+            var normalized = string.IsNullOrWhiteSpace(seed) ? "graph" : seed.Trim().ToLowerInvariant().Replace(" ", "_");
+            normalized = new string(normalized.Where(c => char.IsLetterOrDigit(c) || c == '_' || c == '-').ToArray());
+            if (string.IsNullOrWhiteSpace(normalized)) normalized = "graph";
+
+            var candidate = normalized;
+            var i = 1;
+            while (_db != null && _db.graphs.Any(g => g.graphId == candidate))
+            {
+                candidate = $"{normalized}_{i}";
+                i++;
+            }
+
+            return candidate;
+        }
     }
 }
 #endif

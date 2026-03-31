@@ -41,8 +41,12 @@ namespace TikhayaTropa.EditorTools.Blobber
             }
 
             var logicDb = AssetDatabase.LoadAssetAtPath<BlobberLogicGraphDatabase>(logicPath);
-            if (logicDb == null)
+            var logicAssetType = AssetDatabase.GetMainAssetTypeAtPath(logicPath);
+            var invalidLogicAssetAtPath = logicAssetType != null && logicAssetType != typeof(BlobberLogicGraphDatabase);
+            if (logicDb == null || invalidLogicAssetAtPath)
             {
+                if (File.Exists(logicPath))
+                    AssetDatabase.DeleteAsset(logicPath);
                 logicDb = ScriptableObject.CreateInstance<BlobberLogicGraphDatabase>();
                 AssetDatabase.CreateAsset(logicDb, logicPath);
             }

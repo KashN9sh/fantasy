@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 514239009f8a4422aadba0d50166bdd4, type: 3}
+  m_Name: BlobberLogicGraphDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::TikhayaTropa.Blobber.Data.BlobberLogicGraphDatabase
+  graphs:
+  - graphId: cat_logic
+    displayName: cat_logic
+    nodes:
+    - id: 3108bbfa8463484ba10fd3931e1d8fbc
+      title: Event
+      nodeType: 0
+      eventType: 0
+      conditionType: 0
+      actionType: 4
+      editorPosition: {x: 114, y: 68}
+      stringValue: 
+      stringValue2: 
+      floatValue: 0
+      intValue: 0
+      boolValue: 1
+    - id: 218bc390ba614b54adbfbbdb2c6ed1d7
+      title: Action
+      nodeType: 2
+      eventType: 0
+      conditionType: 0
+      actionType: 1
+      editorPosition: {x: 113, y: 268}
+      stringValue: cat_escape_marker
+      stringValue2: 
+      floatValue: 0
+      intValue: 0
+      boolValue: 1
+    links:
+    - fromNodeId: 3108bbfa8463484ba10fd3931e1d8fbc
+      toNodeId: 218bc390ba614b54adbfbbdb2c6ed1d7

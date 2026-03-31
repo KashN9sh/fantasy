@@ -53,7 +53,15 @@ namespace TikhayaTropa.Blobber.Runtime.Logic
             if (string.IsNullOrWhiteSpace(node.stringValue)) return;
             var target = GameObject.Find(node.stringValue);
             if (target == null) return;
-            _self.transform.position = target.transform.position;
+
+            if (node.floatValue <= 0f)
+            {
+                _self.transform.position = target.transform.position;
+                return;
+            }
+
+            var mover = _self.GetComponent<BlobberMoveToTargetAgent>() ?? _self.AddComponent<BlobberMoveToTargetAgent>();
+            mover.SetTarget(target.transform, node.floatValue);
         }
 
         void ExecutePlayAnimation(BlobberLogicNodeData node)

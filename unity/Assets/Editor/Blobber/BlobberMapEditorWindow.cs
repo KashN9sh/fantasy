@@ -29,6 +29,7 @@ namespace TikhayaTropa.EditorTools.Blobber
         string _newObjectId = "obj";
         string _selectedCatalogId = string.Empty;
         string _librarySearch = string.Empty;
+        string _pendingMultilineEnterControl = string.Empty;
 
         [MenuItem("TikhayaTropa/Blobber/Map Editor")]
         static void Open() => GetWindow<BlobberMapEditorWindow>("Blobber Map Editor");
@@ -40,6 +41,7 @@ namespace TikhayaTropa.EditorTools.Blobber
 
         void OnGUI()
         {
+            HandleMultilineEnterHotkey();
             EditorGUILayout.BeginHorizontal();
             DrawLeftPanel();
             DrawGridPanel();
@@ -294,7 +296,7 @@ namespace TikhayaTropa.EditorTools.Blobber
                 var o = _map.objects[i];
                 var selected = i == _selectedObject;
                 if (GUILayout.Toggle(selected, $"{o.id} ({o.interactionType}) @ {o.cell}", "Button"))
-                    _selectedObject = i;
+                    SelectObjectIndex(i);
             }
 
             if (_selectedObject >= 0 && _selectedObject < _map.objects.Count && GUILayout.Button("Delete Selected"))
@@ -327,11 +329,11 @@ namespace TikhayaTropa.EditorTools.Blobber
             EditorGUILayout.Space(4);
             EditorGUILayout.LabelField("Params", EditorStyles.miniBoldLabel);
             o.parameters.prompt = EditorGUILayout.TextField("Prompt", o.parameters.prompt);
-            o.parameters.message = EditorGUILayout.TextArea(o.parameters.message, GUILayout.MinHeight(48));
+            o.parameters.message = DrawNamedMultiline("ml_message", o.parameters.message, 48f);
             o.parameters.setFlag = EditorGUILayout.TextField("Set Flag", o.parameters.setFlag);
             o.parameters.requireFlag = EditorGUILayout.TextField("Require Flag", o.parameters.requireFlag);
             o.parameters.diaryId = EditorGUILayout.TextField("Diary Id", o.parameters.diaryId);
-            o.parameters.diaryText = EditorGUILayout.TextArea(o.parameters.diaryText, GUILayout.MinHeight(36));
+            o.parameters.diaryText = DrawNamedMultiline("ml_diary", o.parameters.diaryText, 36f);
             if (o.interactionType == BlobberInteractionType.NpcDialogue)
                 o.parameters.dialogueId = DrawDialoguePopup(o.parameters.dialogueId);
             if (o.interactionType == BlobberInteractionType.SceneTransition)
@@ -342,7 +344,7 @@ namespace TikhayaTropa.EditorTools.Blobber
             if (o.interactionType == BlobberInteractionType.CustomAction)
             {
                 o.parameters.customActionId = EditorGUILayout.TextField("Action Id", o.parameters.customActionId);
-                o.parameters.customPayload = EditorGUILayout.TextArea(o.parameters.customPayload, GUILayout.MinHeight(36));
+                o.parameters.customPayload = DrawNamedMultiline("ml_payload", o.parameters.customPayload, 36f);
             }
             o.parameters.setChapterAct = EditorGUILayout.IntField("Set Chapter Act", o.parameters.setChapterAct);
             
@@ -353,7 +355,7 @@ namespace TikhayaTropa.EditorTools.Blobber
             if (GUILayout.Button("Open Graph"))
                 BlobberLogicGraphEditorWindow.OpenWith(o.parameters.logicGraphId);
             if (GUILayout.Button("Create Graph"))
-                o.parameters.logicGraphId = CreateLogicGraphAndGetId();
+                o.parameters.logicGraphId = CreateLogicGraphAndGetId(o.id);
             EditorGUILayout.EndHorizontal();
 
             EditorUtility.SetDirty(_map);
@@ -388,10 +390,24 @@ namespace TikhayaTropa.EditorTools.Blobber
             if (db == null || db.graphs.Count == 0)
                 return EditorGUILayout.TextField("Logic Graph Id", current);
 
-            var ids = db.graphs.Select(g => g.graphId).ToArray();
-            var labels = db.graphs.Select(g => $"{g.displayName} ({ShortId(g.graphId)})").ToArray();
-            var idx = Mathf.Max(0, System.Array.IndexOf(ids, current));
-            idx = EditorGUILayout.Popup("Logic Graph", idx, labels);
+            var graphIds = db.graphs.Select(g => g.graphId).ToList();
+            var graphLabels = db.graphs.Select(g => $"{g.displayName} ({ShortId(g.graphId)})").ToList();
+
+            // Always allow empty graph and preserve unknown ids for proper object switching.
+            var ids = new List<string> { string.Empty };
+            var labels = new List<string> { "None" };
+            ids.AddRange(graphIds);
+            labels.AddRange(graphLabels);
+
+            if (!string.IsNullOrWhiteSpace(current) && !ids.Contains(current))
+            {
+                ids.Add(current);
+                labels.Add($"Missing ({ShortId(current)})");
+            }
+
+            var idx = System.Array.IndexOf(ids.ToArray(), current ?? string.Empty);
+            idx = Mathf.Max(0, idx);
+            idx = EditorGUILayout.Popup("Logic Graph", idx, labels.ToArray());
             return ids[idx];
         }
 
@@ -461,7 +477,7 @@ namespace TikhayaTropa.EditorTools.Blobber
             BlobberCatalogEntryModalWindow.Open(catalog, _selectedCatalogId);
         }
 
-        string CreateLogicGraphAndGetId()
+        string CreateLogicGraphAndGetId(string seedId)
         {
             var db = _settings != null ? _settings.logicGraphDatabase : null;
             if (db == null)
@@ -471,16 +487,34 @@ namespace TikhayaTropa.EditorTools.Blobber
             }
 
             Undo.RecordObject(db, "Create logic graph");
+            var graphId = MakeUniqueGraphId(db, string.IsNullOrWhiteSpace(seedId) ? "graph" : $"{seedId}_logic");
             var graph = new BlobberLogicGraphData
             {
-                graphId = Guid.NewGuid().ToString("N"),
-                displayName = $"Graph {db.graphs.Count + 1}"
+                graphId = graphId,
+                displayName = graphId
             };
             db.graphs.Add(graph);
             EditorUtility.SetDirty(db);
             AssetDatabase.SaveAssets();
             BlobberLogicGraphEditorWindow.OpenWith(graph.graphId);
             return graph.graphId;
+        }
+
+        static string MakeUniqueGraphId(BlobberLogicGraphDatabase db, string seed)
+        {
+            var normalized = string.IsNullOrWhiteSpace(seed) ? "graph" : seed.Trim().ToLowerInvariant().Replace(" ", "_");
+            normalized = new string(normalized.Where(c => char.IsLetterOrDigit(c) || c == '_' || c == '-').ToArray());
+            if (string.IsNullOrWhiteSpace(normalized)) normalized = "graph";
+
+            var candidate = normalized;
+            var i = 1;
+            while (db.graphs.Any(g => g.graphId == candidate))
+            {
+                candidate = $"{normalized}_{i}";
+                i++;
+            }
+
+            return candidate;
         }
 
         void HandleLibraryDropOnGrid(Rect gridRect, float cellSizePx, Event e)
@@ -587,7 +621,7 @@ namespace TikhayaTropa.EditorTools.Blobber
             {
                 if (TryGetObjectIndexAtMouse(gridRect, cellSizePx, e.mousePosition, out var idx))
                 {
-                    _selectedObject = idx;
+                    SelectObjectIndex(idx);
                     _dragObjectIndex = idx;
                     _isDraggingObject = true;
                     e.Use();
@@ -623,6 +657,43 @@ namespace TikhayaTropa.EditorTools.Blobber
                 _dragObjectIndex = -1;
                 e.Use();
             }
+        }
+
+        void HandleMultilineEnterHotkey()
+        {
+            var e = Event.current;
+            if (e == null || e.type != EventType.KeyDown) return;
+            if (e.keyCode != KeyCode.Return && e.keyCode != KeyCode.KeypadEnter) return;
+
+            var focused = GUI.GetNameOfFocusedControl();
+            if (!string.IsNullOrWhiteSpace(focused) && focused.StartsWith("ml_"))
+            {
+                _pendingMultilineEnterControl = focused;
+                e.Use();
+                Repaint();
+            }
+        }
+
+        string DrawNamedMultiline(string controlName, string value, float minHeight)
+        {
+            if (_pendingMultilineEnterControl == controlName)
+            {
+                value = (value ?? string.Empty) + "\n";
+                _pendingMultilineEnterControl = string.Empty;
+            }
+
+            GUI.SetNextControlName(controlName);
+            return EditorGUILayout.TextArea(value ?? string.Empty, GUILayout.MinHeight(minHeight));
+        }
+
+        void SelectObjectIndex(int index)
+        {
+            if (_selectedObject == index) return;
+            // Commit text fields before switching object, otherwise IMGUI may keep stale edited value.
+            GUI.FocusControl(null);
+            EditorGUIUtility.editingTextField = false;
+            _selectedObject = index;
+            Repaint();
         }
 
         bool TryGetObjectIndexAtMouse(Rect gridRect, float cellSizePx, Vector2 mousePos, out int idx)

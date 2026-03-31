@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TikhayaTropa.Blobber.Data.BlobberProjectSettings
   objectCatalog: {fileID: 11400000, guid: 4c15e5f76e0ba41f5be42e52713fbb7d, type: 2}
   dialogueDatabase: {fileID: 11400000, guid: efb7fc8932d614205be37665462c5f05, type: 2}
+  logicGraphDatabase: {fileID: 11400000, guid: b01a1d90c2da04600af00a2371047d76, type: 2}

@@ -24,7 +24,7 @@ MonoBehaviour:
   startYaw: 0
   tiles: 0200000002000000020000000200000002000000010000000100000002000000020000000100000001000000020000000200000001000000010000000200000002000000010000000100000001000000020000000100000001000000010000000200000001000000010000000100000002000000010000000100000002000000020000000100000001000000020000000200000001000000010000000200000002000000020000000200000002000000
   objects:
-  - id: obj-1
+  - id: cat_escape_marker
     catalogId: inspect
     interactionType: 0
     cell: {x: 2, y: 9}
@@ -42,10 +42,11 @@ MonoBehaviour:
       targetSpawn: 
       customActionId: 
       customPayload: 
+      logicGraphId: 
       setChapterAct: 0
   - id: cat
     catalogId: cat
-    interactionType: 3
+    interactionType: 0
     cell: {x: 2, y: 5}
     yOffset: 0.6
     yaw: 0
@@ -61,6 +62,7 @@ MonoBehaviour:
       targetSpawn: 
       customActionId: 
       customPayload: 
+      logicGraphId: cat_logic
       setChapterAct: 0
   - id: cat-1
     catalogId: cat
@@ -70,14 +72,15 @@ MonoBehaviour:
     yaw: 0
     parameters:
       prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
-      message: 
+      message: "\u0410\u0425\u0410\u0425\u0410 \u0410\u0411\u041E\u0411\u0410)))\n\u0417\u0430\u043B\u0443\u043F\u0430)\n\n"
       setFlag: 
       requireFlag: 
-      diaryId: 
-      diaryText: 
+      diaryId: "\u0417\u0430\u043B\u0443\u043F\u043A\u0438\u043D\u0441"
+      diaryText: "\u0410 \u0442\u044B \u0437\u0430\u043B\u0443\u043F\u043A\u0430"
       dialogueId: 
       targetScene: 
       targetSpawn: 
       customActionId: 
       customPayload: 
+      logicGraphId: 
       setChapterAct: 0
