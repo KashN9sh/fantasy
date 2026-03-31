@@ -15,8 +15,8 @@ namespace TikhayaTropa.EditorTools.Blobber
         Vector2 _leftScroll;
         Vector2 _rightScroll;
         Vector2 _canvasScroll;
-        int _linkFromIndex;
-        int _linkToIndex;
+        string _linkDragFromNodeId = string.Empty;
+        const float PortRadius = 7f;
 
         [MenuItem("TikhayaTropa/Blobber/Logic Graph Editor")]
         static void Open() => GetWindow<BlobberLogicGraphEditorWindow>("Blobber Logic Graph");
@@ -91,6 +91,7 @@ namespace TikhayaTropa.EditorTools.Blobber
 
             DrawLinks(graph, canvasRect);
             DrawNodes(graph, canvasRect);
+            HandleLinkDrag(graph, canvasRect);
             HandleNodeDrag(graph, canvasRect);
 
             EditorGUILayout.EndScrollView();
@@ -112,35 +113,10 @@ namespace TikhayaTropa.EditorTools.Blobber
             if (GUILayout.Button("Add Event Node")) AddNode(graph, BlobberLogicNodeType.Event);
             if (GUILayout.Button("Add Condition Node")) AddNode(graph, BlobberLogicNodeType.Condition);
             if (GUILayout.Button("Add Action Node")) AddNode(graph, BlobberLogicNodeType.Action);
-
-            EditorGUILayout.Space(8);
-            DrawLinkTools(graph);
             EditorGUILayout.Space(8);
             DrawSelectedNode(graph);
             EditorGUILayout.EndScrollView();
             EditorGUILayout.EndVertical();
-        }
-
-        void DrawLinkTools(BlobberLogicGraphData graph)
-        {
-            if (graph.nodes.Count == 0) return;
-            EditorGUILayout.LabelField("Links", EditorStyles.boldLabel);
-            var labels = graph.nodes.Select(n => $"{n.title} [{n.nodeType}]").ToArray();
-            _linkFromIndex = Mathf.Clamp(_linkFromIndex, 0, labels.Length - 1);
-            _linkToIndex = Mathf.Clamp(_linkToIndex, 0, labels.Length - 1);
-            _linkFromIndex = EditorGUILayout.Popup("From", _linkFromIndex, labels);
-            _linkToIndex = EditorGUILayout.Popup("To", _linkToIndex, labels);
-            if (GUILayout.Button("Create Link"))
-            {
-                var from = graph.nodes[_linkFromIndex].id;
-                var to = graph.nodes[_linkToIndex].id;
-                if (!graph.links.Any(l => l.fromNodeId == from && l.toNodeId == to) && from != to)
-                {
-                    Undo.RecordObject(_db, "Create logic link");
-                    graph.links.Add(new BlobberLogicLinkData { fromNodeId = from, toNodeId = to });
-                    EditorUtility.SetDirty(_db);
-                }
-            }
         }
 
         void DrawSelectedNode(BlobberLogicGraphData graph)
@@ -283,6 +259,11 @@ namespace TikhayaTropa.EditorTools.Blobber
                 if (node.id == _selectedNodeId)
                     EditorGUI.DrawRect(new Rect(rect.x - 1f, rect.y - 1f, rect.width + 2f, 2f), Color.yellow);
                 GUI.Label(rect, $"{node.title}\n{node.nodeType}", EditorStyles.whiteLabel);
+
+                var input = NodeInputPoint(node, canvasRect);
+                var output = NodeOutputPoint(node, canvasRect);
+                EditorGUI.DrawRect(new Rect(input.x - PortRadius * 0.5f, input.y - PortRadius * 0.5f, PortRadius, PortRadius), new Color(0.9f, 0.9f, 0.95f, 1f));
+                EditorGUI.DrawRect(new Rect(output.x - PortRadius * 0.5f, output.y - PortRadius * 0.5f, PortRadius, PortRadius), new Color(0.95f, 0.85f, 0.3f, 1f));
             }
         }
 
@@ -294,21 +275,76 @@ namespace TikhayaTropa.EditorTools.Blobber
                 var from = graph.nodes.Find(n => n.id == link.fromNodeId);
                 var to = graph.nodes.Find(n => n.id == link.toNodeId);
                 if (from == null || to == null) continue;
-                var a = NodeRect(from, canvasRect).center;
-                var b = NodeRect(to, canvasRect).center;
-                Handles.DrawAAPolyLine(2.5f, a, b);
+                var a = NodeOutputPoint(from, canvasRect);
+                var b = NodeInputPoint(to, canvasRect);
+                Handles.DrawBezier(a, b, a + Vector2.right * 45f, b + Vector2.left * 45f, Color.white, null, 2.5f);
+            }
+
+            if (!string.IsNullOrWhiteSpace(_linkDragFromNodeId))
+            {
+                var from = graph.nodes.Find(n => n.id == _linkDragFromNodeId);
+                if (from != null)
+                {
+                    var a = NodeOutputPoint(from, canvasRect);
+                    var b = Event.current.mousePosition;
+                    Handles.DrawBezier(a, b, a + Vector2.right * 45f, b + Vector2.left * 45f, new Color(1f, 0.9f, 0.5f, 1f), null, 2f);
+                }
             }
             Handles.EndGUI();
+        }
+
+        void HandleLinkDrag(BlobberLogicGraphData graph, Rect canvasRect)
+        {
+            var e = Event.current;
+            if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape && !string.IsNullOrWhiteSpace(_linkDragFromNodeId))
+            {
+                _linkDragFromNodeId = string.Empty;
+                e.Use();
+                Repaint();
+                return;
+            }
+
+            if (e.type == EventType.MouseDown && e.button == 0 && TryGetNodeAtOutputPort(graph, canvasRect, e.mousePosition, out var fromNode))
+            {
+                _linkDragFromNodeId = fromNode.id;
+                _selectedNodeId = fromNode.id;
+                e.Use();
+                Repaint();
+                return;
+            }
+
+            if (e.type == EventType.MouseUp && e.button == 0 && !string.IsNullOrWhiteSpace(_linkDragFromNodeId))
+            {
+                if (TryGetNodeAtInputPort(graph, canvasRect, e.mousePosition, out var toNode))
+                {
+                    var fromId = _linkDragFromNodeId;
+                    var toId = toNode.id;
+                    if (fromId != toId && !graph.links.Any(l => l.fromNodeId == fromId && l.toNodeId == toId))
+                    {
+                        Undo.RecordObject(_db, "Create logic link");
+                        graph.links.Add(new BlobberLogicLinkData { fromNodeId = fromId, toNodeId = toId });
+                        EditorUtility.SetDirty(_db);
+                    }
+                }
+
+                _linkDragFromNodeId = string.Empty;
+                e.Use();
+                Repaint();
+            }
         }
 
         void HandleNodeDrag(BlobberLogicGraphData graph, Rect canvasRect)
         {
             var e = Event.current;
+            if (!string.IsNullOrWhiteSpace(_linkDragFromNodeId)) return;
             if (e.type == EventType.MouseDown && e.button == 0)
             {
                 _selectedNodeId = string.Empty;
                 foreach (var node in graph.nodes)
                 {
+                    if (IsPointNear(e.mousePosition, NodeInputPoint(node, canvasRect), PortRadius) ||
+                        IsPointNear(e.mousePosition, NodeOutputPoint(node, canvasRect), PortRadius))
+                        continue;
                     if (!NodeRect(node, canvasRect).Contains(e.mousePosition)) continue;
                     _selectedNodeId = node.id;
                     e.Use();
@@ -396,6 +432,53 @@ namespace TikhayaTropa.EditorTools.Blobber
 
         static Rect NodeRect(BlobberLogicNodeData node, Rect canvasRect) =>
             new(canvasRect.x + node.editorPosition.x, canvasRect.y + node.editorPosition.y, 170f, 56f);
+
+        static Vector2 NodeInputPoint(BlobberLogicNodeData node, Rect canvasRect)
+        {
+            var r = NodeRect(node, canvasRect);
+            return new Vector2(r.xMin, r.center.y);
+        }
+
+        static Vector2 NodeOutputPoint(BlobberLogicNodeData node, Rect canvasRect)
+        {
+            var r = NodeRect(node, canvasRect);
+            return new Vector2(r.xMax, r.center.y);
+        }
+
+        static bool IsPointNear(Vector2 a, Vector2 b, float radius) =>
+            Vector2.SqrMagnitude(a - b) <= radius * radius;
+
+        static bool TryGetNodeAtInputPort(BlobberLogicGraphData graph, Rect canvasRect, Vector2 pos, out BlobberLogicNodeData node)
+        {
+            for (var i = graph.nodes.Count - 1; i >= 0; i--)
+            {
+                var n = graph.nodes[i];
+                if (IsPointNear(pos, NodeInputPoint(n, canvasRect), PortRadius))
+                {
+                    node = n;
+                    return true;
+                }
+            }
+
+            node = null;
+            return false;
+        }
+
+        static bool TryGetNodeAtOutputPort(BlobberLogicGraphData graph, Rect canvasRect, Vector2 pos, out BlobberLogicNodeData node)
+        {
+            for (var i = graph.nodes.Count - 1; i >= 0; i--)
+            {
+                var n = graph.nodes[i];
+                if (IsPointNear(pos, NodeOutputPoint(n, canvasRect), PortRadius))
+                {
+                    node = n;
+                    return true;
+                }
+            }
+
+            node = null;
+            return false;
+        }
 
         static string Short(string id) => string.IsNullOrEmpty(id) ? "-" : id.Substring(0, Mathf.Min(6, id.Length));
 

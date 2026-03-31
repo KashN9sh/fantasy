@@ -22,7 +22,7 @@ MonoBehaviour:
       eventType: 0
       conditionType: 0
       actionType: 4
-      editorPosition: {x: 114, y: 68}
+      editorPosition: {x: 7, y: 162}
       stringValue: 
       stringValue2: 
       floatValue: 0
@@ -34,10 +34,10 @@ MonoBehaviour:
       eventType: 0
       conditionType: 0
       actionType: 1
-      editorPosition: {x: 113, y: 268}
+      editorPosition: {x: 271, y: 179}
       stringValue: cat_escape_marker
       stringValue2: 
-      floatValue: 0
+      floatValue: 10
       intValue: 0
       boolValue: 1
     links:
