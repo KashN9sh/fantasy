@@ -15,7 +15,13 @@ EditorBuildSettings:
     path: Assets/Scenes/FogGroveStub.unity
     guid: dc794521552734615ba2d4cc5fa1e0cf
   - enabled: 1
-    path: Assets/Scenes/BlobberPrototype.unity
-    guid: 26033e8ab26cb4cb990759a38b94ca12
+    path: Assets/Scenes/BlobberMeadow.unity
+    guid: 810015691d19140949c2930f93ba63cc
+  - enabled: 1
+    path: Assets/Scenes/BlobberFogGrove.unity
+    guid: 8440e4360099441adb7fb9d997ded86c
+  - enabled: 1
+    path: Assets/Scenes/BlobberMap.unity
+    guid: 549cbdeca740a4ee9b19adb35a869dae
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

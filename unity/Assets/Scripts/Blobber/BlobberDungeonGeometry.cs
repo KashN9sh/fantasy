@@ -13,6 +13,7 @@ namespace TikhayaTropa.Blobber
         [SerializeField] Color wallColor = new(0.35f, 0.32f, 0.38f, 1f);
         [SerializeField] Color monsterColor = new(0.2f, 0.75f, 0.35f, 1f);
         [SerializeField] Color gridLineColor = new(0.08f, 0.08f, 0.1f, 1f);
+        [SerializeField] bool autoAdjustWallGridContrast = true;
 
         public BlobberMapRuntime Map { get; private set; }
         public float CellSize => cellSize;
@@ -37,7 +38,8 @@ namespace TikhayaTropa.Blobber
         {
             var lines = mapLines != null && mapLines.Length > 0 ? mapLines : DefaultMap;
             Map = new BlobberMapRuntime(lines);
-            _wallMat = CreateGridMaterial(wallColor, gridLineColor);
+            var wallLine = autoAdjustWallGridContrast ? EnsureContrastLineColor(wallColor, gridLineColor) : gridLineColor;
+            _wallMat = CreateGridMaterial(wallColor, wallLine);
             _floorMat = CreateGridMaterial(floorColor, gridLineColor);
             Build(Map);
         }
@@ -72,7 +74,7 @@ namespace TikhayaTropa.Blobber
                         floor.transform.position = new Vector3(cx, -0.02f, cz);
                         floor.transform.localScale = new Vector3(cellSize * 0.98f, 0.04f, cellSize * 0.98f);
                         ApplyMaterial(floor, _floorMat);
-                        Object.Destroy(floor.GetComponent<Collider>());
+                        // В smooth FPS пол должен оставаться с коллайдером, иначе CharacterController проваливается.
                     }
 
                     if (c == 'M')
@@ -126,6 +128,19 @@ namespace TikhayaTropa.Blobber
             }
             t.Apply(false, true);
             return t;
+        }
+
+        static Color EnsureContrastLineColor(Color fill, Color line)
+        {
+            // Если линия слишком близка к цвету стены, принудительно уводим ее в контраст.
+            var dr = Mathf.Abs(fill.r - line.r);
+            var dg = Mathf.Abs(fill.g - line.g);
+            var db = Mathf.Abs(fill.b - line.b);
+            var distance = dr + dg + db;
+            if (distance >= 0.35f) return line;
+
+            var brightness = fill.r * 0.299f + fill.g * 0.587f + fill.b * 0.114f;
+            return brightness > 0.5f ? new Color(0.06f, 0.06f, 0.07f, 1f) : new Color(0.92f, 0.92f, 0.95f, 1f);
         }
 
         public Vector3 GridToWorldCenter(int gx, int gz) =>

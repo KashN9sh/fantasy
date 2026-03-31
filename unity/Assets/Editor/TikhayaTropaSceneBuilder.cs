@@ -128,15 +128,18 @@ namespace TikhayaTropa.EditorTools
 
             var ng = CreateButton(canvas.transform, "NewGame", "Новая игра", new Vector2(0, 10));
             var cont = CreateButton(canvas.transform, "Continue", "Продолжить", new Vector2(0, -50));
-            var quit = CreateButton(canvas.transform, "Quit", "Выход", new Vector2(0, -110));
+            var blobber = CreateButton(canvas.transform, "BlobberPrototype", "Blobber (главы 1-2)", new Vector2(0, -110));
+            var quit = CreateButton(canvas.transform, "Quit", "Выход", new Vector2(0, -170));
 
             var menu = canvas.gameObject.AddComponent<TitleMenu>();
             So(menu, "newGameButton", ng);
             So(menu, "continueButton", cont);
+            So(menu, "blobberPrototypeButton", blobber);
             So(menu, "quitButton", quit);
 
             AddTitleButtonTooltip(ng.gameObject, "Начать с чистого сохранения и первой главы.");
             AddTitleButtonTooltip(cont.gameObject, "Загрузить последнее сохранение, если оно есть.");
+            AddTitleButtonTooltip(blobber.gameObject, "Запустить прототип blobber для глав 1-2.");
             AddTitleButtonTooltip(quit.gameObject, "Выйти из игры.");
 
             BuildTitleTooltipOverlay(canvas.transform);

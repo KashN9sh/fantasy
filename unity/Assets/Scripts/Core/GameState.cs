@@ -18,6 +18,9 @@ namespace TikhayaTropa.Core
         public int Trust { get; private set; }
         public int ChapterAct { get; private set; } = 1;
         public int LocationTransitionCount { get; private set; }
+        public string BlobberScene { get; private set; } = string.Empty;
+        public Vector3 BlobberPosition { get; private set; }
+        public float BlobberYaw { get; private set; }
 
         public IReadOnlyList<DiaryEntryData> DiaryEntries => _diary;
 
@@ -61,6 +64,9 @@ namespace TikhayaTropa.Core
             Acceptance = Care = SelfKnowledge = Trust = 0;
             ChapterAct = 1;
             LocationTransitionCount = 0;
+            BlobberScene = string.Empty;
+            BlobberPosition = Vector3.zero;
+            BlobberYaw = 0f;
             InputFrozen = false;
             Notify();
         }
@@ -82,6 +88,9 @@ namespace TikhayaTropa.Core
                 _diary.AddRange(data.diary);
             ChapterAct = data.chapterAct;
             LocationTransitionCount = data.locationTransitionCount;
+            BlobberScene = data.blobberScene ?? string.Empty;
+            BlobberPosition = new Vector3(data.blobberX, data.blobberY, data.blobberZ);
+            BlobberYaw = data.blobberYaw;
             InputFrozen = false;
             Notify();
             OnDiaryChanged?.Invoke();
@@ -103,8 +112,35 @@ namespace TikhayaTropa.Core
                 inventory = invArr,
                 diary = _diary.ToArray(),
                 chapterAct = ChapterAct,
-                locationTransitionCount = LocationTransitionCount
+                locationTransitionCount = LocationTransitionCount,
+                blobberScene = BlobberScene,
+                blobberX = BlobberPosition.x,
+                blobberY = BlobberPosition.y,
+                blobberZ = BlobberPosition.z,
+                blobberYaw = BlobberYaw
             };
+        }
+
+        public void SetBlobberPose(string scene, Vector3 position, float yaw)
+        {
+            BlobberScene = scene ?? string.Empty;
+            BlobberPosition = position;
+            BlobberYaw = yaw;
+            Notify();
+        }
+
+        public bool TryGetBlobberPose(string scene, out Vector3 position, out float yaw)
+        {
+            if (!string.IsNullOrEmpty(BlobberScene) && BlobberScene == scene)
+            {
+                position = BlobberPosition;
+                yaw = BlobberYaw;
+                return true;
+            }
+
+            position = Vector3.zero;
+            yaw = 0f;
+            return false;
         }
 
         public bool HasFlag(string flag) => _flags.Contains(flag);

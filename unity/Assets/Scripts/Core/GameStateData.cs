@@ -15,6 +15,11 @@ namespace TikhayaTropa.Core
         public DiaryEntryData[] diary = Array.Empty<DiaryEntryData>();
         public int chapterAct = 1;
         public int locationTransitionCount;
+        public string blobberScene = string.Empty;
+        public float blobberX;
+        public float blobberY;
+        public float blobberZ;
+        public float blobberYaw;
     }
 
     [Serializable]

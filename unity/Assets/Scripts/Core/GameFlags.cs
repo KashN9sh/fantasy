@@ -22,5 +22,7 @@ namespace TikhayaTropa.Core
         public const string VeraQuestDeclined = "vera-quest-declined";
         public const string HollowLavenderTaken = "hollow-lavender-taken";
         public const string FireflyGladeDone = "firefly-glade-done";
+        public const string BlobberChapter1Done = "blobber-ch1-done";
+        public const string BlobberChapter2Done = "blobber-ch2-done";
     }
 }

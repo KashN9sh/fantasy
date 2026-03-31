@@ -1,0 +1,110 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55778986d51ee45ada048b797db238a8, type: 3}
+  m_Name: BlobberObjectCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::TikhayaTropa.Blobber.Data.BlobberObjectCatalog
+  entries:
+  - id: inspect
+    displayName: Inspect
+    previewPrimitive: 3
+    previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    interactionType: 0
+    defaultParams:
+      prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+      message: 
+      setFlag: 
+      requireFlag: 
+      diaryId: 
+      diaryText: 
+      dialogueId: 
+      targetScene: 
+      targetSpawn: 
+      customActionId: 
+      customPayload: 
+      setChapterAct: 0
+    defaultScale: {x: 0.45, y: 1.1, z: 0.45}
+  - id: npc
+    displayName: NPC Dialogue
+    previewPrimitive: 1
+    previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    interactionType: 1
+    defaultParams:
+      prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+      message: 
+      setFlag: 
+      requireFlag: 
+      diaryId: 
+      diaryText: 
+      dialogueId: 
+      targetScene: 
+      targetSpawn: 
+      customActionId: 
+      customPayload: 
+      setChapterAct: 0
+    defaultScale: {x: 0.45, y: 1.1, z: 0.45}
+  - id: door
+    displayName: Door Transition
+    previewPrimitive: 2
+    previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    interactionType: 2
+    defaultParams:
+      prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+      message: 
+      setFlag: 
+      requireFlag: 
+      diaryId: 
+      diaryText: 
+      dialogueId: 
+      targetScene: 
+      targetSpawn: 
+      customActionId: 
+      customPayload: 
+      setChapterAct: 0
+    defaultScale: {x: 0.45, y: 1.1, z: 0.45}
+  - id: cat
+    displayName: Cat Scare
+    previewPrimitive: 1
+    previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    interactionType: 3
+    defaultParams:
+      prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+      message: 
+      setFlag: 
+      requireFlag: 
+      diaryId: 
+      diaryText: 
+      dialogueId: 
+      targetScene: 
+      targetSpawn: 
+      customActionId: 
+      customPayload: 
+      setChapterAct: 0
+    defaultScale: {x: 0.45, y: 1.1, z: 0.45}
+  - id: object
+    displayName: "\u0417\u0430\u043B\u0443\u043F\u04302"
+    previewPrimitive: 0
+    previewColor: {r: 0.65, g: 0.62, b: 0.5, a: 1}
+    interactionType: 0
+    defaultParams:
+      prompt: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+      message: 
+      setFlag: 
+      requireFlag: 
+      diaryId: 
+      diaryText: 
+      dialogueId: 
+      targetScene: 
+      targetSpawn: 
+      customActionId: 
+      customPayload: 
+      setChapterAct: 0
+    defaultScale: {x: 0.45, y: 1.1, z: 0.45}
