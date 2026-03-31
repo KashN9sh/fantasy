@@ -58,7 +58,7 @@ namespace TikhayaTropa.EditorTools
         readonly Dictionary<string, bool> _sheetFoldouts = new();
         readonly Dictionary<string, bool> _clipFoldouts = new();
 
-        [MenuItem("TikhayaTropa/Sprites/Sprite Manager")]
+        [MenuItem("TikhayaTropa/Sprite Manager")]
         static void Open() => GetWindow<SpriteAtlasAnimationWindow>("Sprite Manager");
 
         void OnEnable()

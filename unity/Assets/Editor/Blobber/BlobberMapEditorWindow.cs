@@ -31,8 +31,8 @@ namespace TikhayaTropa.EditorTools.Blobber
         string _librarySearch = string.Empty;
         string _pendingMultilineEnterControl = string.Empty;
 
-        [MenuItem("TikhayaTropa/Blobber/Map Editor")]
-        static void Open() => GetWindow<BlobberMapEditorWindow>("Blobber Map Editor");
+        [MenuItem("TikhayaTropa/Map Editor")]
+        static void Open() => GetWindow<BlobberMapEditorWindow>("Map Editor");
 
         void OnEnable()
         {

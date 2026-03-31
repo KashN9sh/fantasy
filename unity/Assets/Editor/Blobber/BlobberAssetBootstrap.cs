@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.IO;
+using TikhayaTropa.Animation;
 using TikhayaTropa.Blobber.Data;
 using UnityEditor;
 using UnityEngine;
@@ -10,7 +11,7 @@ namespace TikhayaTropa.EditorTools.Blobber
     {
         const string Root = "Assets/Blobber";
 
-        [MenuItem("TikhayaTropa/Blobber/Bootstrap Assets")]
+        [MenuItem("TikhayaTropa/Bootstrap Assets")]
         public static void Bootstrap()
         {
             Directory.CreateDirectory(Root);
@@ -20,6 +21,7 @@ namespace TikhayaTropa.EditorTools.Blobber
             var dialogPath = $"{Root}/Data/BlobberDialogueDatabase.asset";
             var logicPath = $"{Root}/Data/BlobberLogicGraphDatabase.asset";
             var settingsPath = $"{Root}/Data/BlobberProjectSettings.asset";
+            var spriteAtlasPath = $"{Root}/Data/SpriteAnimationAtlas.asset";
 
             var catalog = AssetDatabase.LoadAssetAtPath<BlobberObjectCatalog>(catalogPath);
             if (catalog == null)
@@ -68,9 +70,16 @@ namespace TikhayaTropa.EditorTools.Blobber
                 EditorUtility.SetDirty(settings);
             }
 
+            var spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAnimationAtlas>(spriteAtlasPath);
+            if (spriteAtlas == null)
+            {
+                spriteAtlas = ScriptableObject.CreateInstance<SpriteAnimationAtlas>();
+                AssetDatabase.CreateAsset(spriteAtlas, spriteAtlasPath);
+            }
+
             AssetDatabase.SaveAssets();
             Selection.activeObject = settings;
-            Debug.Log("Blobber bootstrap complete: catalog/dialogue/settings created.");
+            Debug.Log("Bootstrap complete: catalog/dialogue/logic/settings and sprite atlas created.");
         }
     }
 }

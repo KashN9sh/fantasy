@@ -18,12 +18,12 @@ namespace TikhayaTropa.EditorTools.Blobber
         string _linkDragFromNodeId = string.Empty;
         const float PortRadius = 7f;
 
-        [MenuItem("TikhayaTropa/Blobber/Logic Graph Editor")]
-        static void Open() => GetWindow<BlobberLogicGraphEditorWindow>("Blobber Logic Graph");
+        [MenuItem("TikhayaTropa/Logic Graph Editor")]
+        static void Open() => GetWindow<BlobberLogicGraphEditorWindow>("Logic Graph");
 
         public static void OpenWith(string graphId)
         {
-            var w = GetWindow<BlobberLogicGraphEditorWindow>("Blobber Logic Graph");
+            var w = GetWindow<BlobberLogicGraphEditorWindow>("Logic Graph");
             w._selectedGraphId = graphId ?? string.Empty;
             w.Focus();
             w.Repaint();

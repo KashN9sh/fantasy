@@ -19,7 +19,6 @@ namespace TikhayaTropa.EditorTools.Blobber
 {
     public static class BlobberSceneBaker
     {
-        [MenuItem("TikhayaTropa/Blobber/Bake selected map to scene")]
         public static void BakeSelected()
         {
             var map = Selection.activeObject as BlobberMapAsset;
